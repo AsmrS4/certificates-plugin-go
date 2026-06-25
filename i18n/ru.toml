@@ -1,0 +1,89 @@
+# Certificates plugin — English translations
+
+# Commands
+order_certificate = "Заказать справку"
+order_statuses = "Статусы заказанных справок"
+find_order_status = "Узнать текущий статус заказа справки"
+cancel_order = "Отменить заказ справки"
+yes = "Да"
+no = "Нет"
+
+# Flow
+select_certificate_type = "Выберите тип справки, которую хотите заказать:"
+select_certificate_obtain = "Выберите способ получения справки:"
+enter_order_id = "Введите ID заказанной справки:"
+confirm_cancel_order= "Хотите отменить заказ?"
+enter_status = "Выберите статус для фильтрации списка заказанных справок:"
+choose_certificate_type = "Доступные виды справок:"
+choose_obtain_method = "Доступные способы получения:"
+filter_by = "Найти по статусу:"
+enter_additional_info = "Укажите конкретный вид справки, которую вам нужно получить:"
+upload_attachments = "Загрузите нужные документы(скан, pdf-файл, фото):"
+
+# UI
+notify_enabled = "Уведомления включены."
+notify_disabled = "Уведомления отключены."
+paper = "Бумажный(на руки)"
+electronic = "Электронный"
+
+# Errors
+error_default = "❌ Не удалось обработать запрос. Повторите позднее."
+order_not_found = "🤷‍♂️ Заказ справки с ID - %d не найден." 
+certificate_not_found = "🤷‍♂️ Справка с ID - %d не найдена."
+order_creation_error = "❌ Не удалось создать заявку."
+incorrect_id = "❌ Неверный формат ID. Введите число."
+order_already_cancelled = "❌ Заказ справки ID: %d уже был отменен."
+order_already_rejected = "❌ Заказ справки ID: %d был отменен сотрудником деканата."
+order_is_not_pending = "❌ Ошибка. Заказ справки ID: %d уже готовится или уже готова."
+order_status_req = "❌ Требуется статус заказа."
+obtain_method_req = "❌ Укажите способ получение справки."
+certificate_type_req = "❌ Укажите тип заказываемой справки."
+comment_req = "❌ Уточните какую именно справку вы хотите получить."
+
+order_not_found = "🤷‍♂️ Заказ с ID %d не найден"
+order_not_pending = "🤷‍♂️ Заказ %d не в статусе 'На рассмотрении'"
+internal_error = "❌ Внутренняя ошибка сервера"
+invalid_id = "❌ Неверный ID заказа"
+attachment_save_failed = "❌ Не удалось сохранить вложения"
+file_upload_failed = "❌ Не удалось загрузить файл"
+validation_failed = "Ошибка валидации: %s"
+technical_error = "Техническая ошибка"
+comment_too_long = "❌ Максимально допустимая длина комментария – 255 символов."
+
+# Responses
+order_created = "✅ Справка успешно заказана! ID: %d"
+order_found = "🔎 Заявка ID: %d"
+order_cancelled_successfully = "✅ Заказ справки ID: %d успешно отменен!"
+no_orders = "🤷‍♂️ Заявки не найдены."
+orders_header = "🔎 Найденные заявки (%d элем.):"
+change_status_event = "🔔 Статус заказанной справки ID: %d изменился на %s"
+
+status_Pending = "Отправлена ⏳"
+status_Rejected = "Отклонена ❌"
+status_Prepare = "Готовится 🔜"
+status_Done = "Готова ✅"
+status_Cancelled = "Отменена 🚫"
+
+obtain_method_Paper = "Бумажный"
+obtain_method_Electronic = "Электронный"
+
+certificate_type_study_period = "Справка о периоде обучения"
+certificate_type_academic = "Академическая справка"
+certificate_type_common = "Общая справка"
+certificate_type_call = "Справка-вызов"
+certificate_type_mvd = "Справка в МВД (ФМС)"
+certificate_type_study_period_en = "Справка об обучении (англ.)"
+certificate_type_name_change = "Справка о смене ФИ"
+
+pending = "Отправленные ⏳"
+prepare = "Готовятся 🔜"
+done = "Готовы ✅"
+skip = "Все"
+
+order_info_id = "Заказ справки ID"
+order_info_type = "Тип справки"
+order_info_obtain_method = "Способ получения"
+order_info_status = "Статус" 
+order_info_rejection_reason = "Причина"
+download = "Скачать справку"
+order_paper_done_comment = "Справку можно забрать в деканате."

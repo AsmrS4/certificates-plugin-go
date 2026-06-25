@@ -1,0 +1,6 @@
+.idea
+.env
+*.txt
+*.wasm
+*.bundle
+*.zip

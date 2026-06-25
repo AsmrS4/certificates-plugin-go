@@ -1,0 +1,89 @@
+# Certificates plugin — English translations
+
+# Commands
+order_certificate = "Order certificate"
+order_statuses = "Ordered certificate applications statuses"
+find_order_status = "Find order status by ID"
+cancel_order = "Cancel certificate order"
+yes = "Yes"
+no = "No"
+
+# Flow
+select_certificate_type = "Select which certificate type you would like to order:"
+select_certificate_obtain = "Select a method for obtaining a certificate:"
+enter_order_id = "Enter the order request ID:"
+confirm_cancel_order= "Would you like to cancel this order?"
+enter_status = "Enter status to filter certificate order list. Skip to show all orders."
+choose_certificate_type = "Available types:"
+choose_obtain_method = "Available obtain ways:"
+filter_by = "Find with status:"
+enter_additional_info = "Please indicate the specific type of certificate you need to obtain:"
+upload_attachments = "Upload necessary documents:"
+
+# UI
+notify_enabled = "Notifications enabled."
+notify_disabled = "Notifications disabled."
+paper = "Paper"
+electronic = "Electronic"
+
+# Errors
+error_default = "❌ An error occurred. Please try again."
+order_not_found = "🤷‍♂️ Certificate order with ID: %d not found." 
+certificate_not_found = "🤷‍♂️ Certificate with ID: %d not found."
+order_creation_error = "❌ An error occurred. Failed to create certificate order."
+incorrect_id = "❌ Incorrect ID format. Enter integer number."
+order_already_cancelled = "❌ Certificate order with ID: %d already cancelled."
+order_already_rejected = "❌ Certificate order with ID: %d was rejected by dean."
+order_is_not_pending = "❌ An error occurred. Certificate order with ID: %d is preparing or done."
+order_status_req = "❌ Order status is required."
+obtain_method_req = "❌ Obtain method is required."
+certificate_type_req = "❌ Certificate type is required."
+comment_req = "❌ Comment is required for common certificate type."
+
+order_not_found = "🤷‍♂️ Order with ID %d not found"
+order_not_pending = "🤷‍♂️ Order %d is not in pending state"
+internal_error = "❌ Internal server error"
+invalid_id = "❌ Invalid order ID"
+attachment_save_failed = "❌ Failed to save attachments"
+file_upload_failed = "❌ Failed to upload file"
+validation_failed = "Validation error: %s"
+technical_error = "Technical error"
+comment_too_long = "❌ Comment cannot exceed 255 characters."
+
+# Responses
+order_created = "✅ Certificate ordered successfully! ID: %d"
+order_found = "🔎 Certificate ID: %d"
+order_cancelled_successfully = "✅ Certificate order ID: %d was cancelled successfully!"
+no_orders = "🤷‍♂️ No certificate orders."
+orders_header = "🔎 Found orders (%d items):"
+change_status_event = "🔔 The status of the certificate order with ID: %d has been changed to %s"
+
+status_Pending = "Pending ⏳"
+status_Rejected = "Rejected ❌"
+status_Prepare = "Preparing 🔜"
+status_Done = "Ready ✅"
+status_Cancelled = "Cancelled 🚫"
+
+obtain_method_Paper = "Paper"
+obtain_method_Electronic = "Electronic"
+
+certificate_type_study_period = "Study Period Certificate"
+certificate_type_academic = "Academic Certificate"
+certificate_type_common = "Common Certificate"
+certificate_type_call = "Call certificate"
+certificate_type_mvd = "MVD certificate"
+certificate_type_study_period_en = "Study certificate (English)"
+certificate_type_name_change = "Name change certificate"
+
+pending = "Pending ⏳"
+prepare = "Preparing 🔜"
+done = "Ready ✅"
+skip = "All"
+
+order_info_id = "Order ID"
+order_info_type = "Certificate type"
+order_info_obtain_method = "Obtain method"
+order_info_status = "Status" 
+order_info_rejection_reason = "Rejection reason"
+download = "Download"
+order_paper_done_comment = "The certificate can be picked up at the dean's office."

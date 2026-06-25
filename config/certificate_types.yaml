@@ -1,0 +1,61 @@
+types:
+    - id: study_period
+      display_name:
+          ru: 'Справка о периоде обучения'
+          en: 'Study Period Certificate'
+      fields:
+          - name: purpose
+            label: { ru: 'Опишите цель получения:', en: 'Purpose:' }
+            type: text
+            required: true
+          - name: destination_university
+            label: { ru: 'Укажите вуз для перевода:', en: 'Destination university:' }
+            type: text
+            required: true
+      steps:
+          - field: purpose
+          - field: destination_university
+      requires_attachments: false
+      max_attachments: 0
+
+    - id: common
+      display_name:
+          ru: 'Общая справка'
+          en: 'Common Certificate'
+      fields:
+          - name: comment
+            label: { ru: 'Опишите какую справку вам нужно заказать:', en: 'Additional info:' }
+            type: text
+            required: false
+      steps:
+          - field: comment
+      requires_attachments: false
+      max_attachments: 0
+    # Шаг для загрузки файлов добавляется автоматически в триггере, поэтому его описывать не нужно
+    - id: call
+      display_name:
+          ru: 'Справка-вызов'
+          en: 'Call certificate'
+      requires_attachments: true
+      max_attachments: 3
+
+    - id: mvd
+      display_name:
+          ru: 'Справка в МВД (ФМС)'
+          en: 'MVD certificate'
+      requires_attachments: true
+      max_attachments: 3
+
+    - id: study_period_en
+      display_name:
+          ru: 'Справка об обучении (англ.)'
+          en: 'Study certificate (English)'
+      requires_attachments: true
+      max_attachments: 3
+
+    - id: name_change
+      display_name:
+          ru: 'Справка о смене ФИ'
+          en: 'Name change certificate'
+      requires_attachments: true
+      max_attachments: 3

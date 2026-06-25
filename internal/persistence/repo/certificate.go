@@ -1,0 +1,170 @@
+package repo
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+
+	repository "github.com/AsmrS4/certificates-plugin-go/internal/persistence"
+	"github.com/AsmrS4/certificates-plugin-go/internal/persistence/entity"
+)
+
+var _ repository.CertificateRepo = (*CertificateImpl)(nil)
+
+type CertificateImpl struct {
+	db *sql.DB
+}
+
+func NewRepo(db *sql.DB) *CertificateImpl {
+	return &CertificateImpl{db: db}
+}
+
+func (r *CertificateImpl) SaveTx(tx *sql.Tx, c *entity.CertificateApplication) (int64, error) {
+	if c.FormData == nil {
+		c.FormData = make(map[string]interface{})
+	}
+	formDataJSON, err := json.Marshal(c.FormData)
+	if err != nil {
+		return 0, fmt.Errorf("marshal form_data: %w", err)
+	}
+
+	var id int64
+	err = tx.QueryRow(
+		`INSERT INTO certificate_applications(
+            student_id, certificate_type, obtain_method, comment, form_data
+        ) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+		c.StudentID, c.Type, c.ObtainMethod, c.Comment, formDataJSON,
+	).Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("insert application: %w", err)
+	}
+	return id, nil
+}
+
+func (r *CertificateImpl) SaveAttachmentsTx(tx *sql.Tx, orderID int64, attachments []entity.CertificateAttachment) error {
+	if len(attachments) == 0 {
+		return nil
+	}
+	for _, att := range attachments {
+		_, err := tx.Exec(
+			`INSERT INTO certificate_attachments(
+                order_id, file_id, file_name, file_type, mime_type, size, uploaded_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+			orderID, att.FileID, att.FileName, att.FileType, att.MimeType, att.Size, att.UploadedAt,
+		)
+		if err != nil {
+			return fmt.Errorf("insert attachment: %w", err)
+		}
+	}
+	return nil
+}
+
+func (c *CertificateImpl) Cancel(id int64) error {
+	_, err := c.db.Exec(`UPDATE certificate_applications SET application_status = 'Cancelled' WHERE id = $1`, id)
+	return err
+}
+
+func (r *CertificateImpl) IsOrderPending(id int64) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(`
+        SELECT EXISTS(
+            SELECT 1 FROM certificate_applications 
+            WHERE id = $1 AND application_status = 'Pending'
+        )`, id).Scan(&exists)
+	return exists, err
+}
+
+func (r *CertificateImpl) FindAllWithStatus(userID int64, st entity.CertificateStatus) ([]entity.CertificateApplication, error) {
+	query := `
+        SELECT id, student_id, application_status, certificate_type, obtain_method,
+               COALESCE(comment, ''), COALESCE(rejection_reason, ''), created_at
+        FROM certificate_applications
+        WHERE student_id = $1 AND application_status = $2
+        ORDER BY created_at DESC LIMIT 10
+		`
+	rows, err := r.db.Query(query, userID, st)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanItems(rows)
+}
+
+func (r *CertificateImpl) FindAllByStudent(studentID int64) ([]entity.CertificateApplication, error) {
+	query := `
+        SELECT id, student_id, application_status, certificate_type, obtain_method,
+               COALESCE(comment, ''), COALESCE(rejection_reason, ''), created_at
+        FROM certificate_applications
+        WHERE student_id = $1
+        ORDER BY created_at DESC LIMIT 10
+    `
+	rows, err := r.db.Query(query, studentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanItems(rows)
+}
+
+func (r *CertificateImpl) FindByID(id int64) (*entity.CertificateApplication, error) {
+	row := r.db.QueryRow(
+		`SELECT id, student_id, application_status, certificate_type, obtain_method,
+         COALESCE(comment, ''), COALESCE(rejection_reason, ''), created_at, form_data
+         FROM certificate_applications WHERE id = $1`, id)
+
+	var found entity.CertificateApplication
+	var formDataJSON []byte
+
+	err := row.Scan(
+		&found.ID,
+		&found.StudentID,
+		&found.Status,
+		&found.Type,
+		&found.ObtainMethod,
+		&found.Comment,
+		&found.RejectionReason,
+		&found.CreatedAt,
+		&formDataJSON,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	if len(formDataJSON) > 0 {
+		var formData map[string]interface{}
+		if err := json.Unmarshal(formDataJSON, &formData); err != nil {
+			// Логируем ошибку, но возвращаем пустую карту, чтобы не ломать ответ
+			found.FormData = make(map[string]interface{})
+		} else {
+			found.FormData = formData
+		}
+	} else {
+		found.FormData = make(map[string]interface{})
+	}
+
+	return &found, nil
+}
+func scanItems(rows *sql.Rows) ([]entity.CertificateApplication, error) {
+	var items []entity.CertificateApplication
+	for rows.Next() {
+		var item entity.CertificateApplication
+		if err := rows.Scan(
+			&item.ID,
+			&item.StudentID,
+			&item.Status,
+			&item.Type,
+			&item.ObtainMethod,
+			&item.Comment,
+			&item.RejectionReason,
+			&item.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
