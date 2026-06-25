@@ -65,7 +65,7 @@ func main() {
 	wasmplugin.Run(wasmplugin.Plugin{
 		ID:      "certificates_plugin",
 		Name:    "Заказ справки из деканата",
-		Version: "1.0.2",
+		Version: "1.0.9",
 		Requirements: []wasmplugin.Requirement{
 			wasmplugin.Database("Store applications for a certificate plugin").Build(),
 			wasmplugin.File("Store and serve uploaded documents appendix to the certificate plugin").Build(),
@@ -85,7 +85,6 @@ func main() {
 
 func order_command() wasmplugin.Trigger {
 	var nodes []wasmplugin.Node
-
 	nodes = append(nodes, wasmplugin.NewStep("type").
 		LocalizedText(cat.L("select_certificate_type"), wasmplugin.StylePlain).
 		DynamicOptions("",
@@ -227,6 +226,42 @@ func find_command() wasmplugin.Trigger {
 }
 
 func find_all_command() wasmplugin.Trigger {
+	var nodes []wasmplugin.Node
+	nodes = append(nodes, wasmplugin.NewStep("status").
+		LocalizedText(cat.L("filter_by"), wasmplugin.StyleHeader).
+		DynamicOptions("",
+			func(cbCtx *wasmplugin.CallbackContext) []wasmplugin.Option {
+				return []wasmplugin.Option{
+					wasmplugin.Opt(cat.L("pending")[cbCtx.Locale], "Pending"),
+					wasmplugin.Opt(cat.L("prepare")[cbCtx.Locale], "Prepare"),
+					wasmplugin.Opt(cat.L("done")[cbCtx.Locale], "Done"),
+					wasmplugin.Opt(cat.L("skip")[cbCtx.Locale], "Skip"),
+				}
+			},
+		))
+	nodes = append(nodes,
+		wasmplugin.ConditionalBranch(
+			wasmplugin.When(
+				wasmplugin.ParamNeq("status", "Skip"),
+				wasmplugin.NewStep("type").
+					LocalizedText(cat.L("select_certificate_type"), wasmplugin.StylePlain).
+					DynamicOptions("",
+						func(cbCtx *wasmplugin.CallbackContext) []wasmplugin.Option {
+							var opts []wasmplugin.Option
+							for id, cfg := range registry {
+								label := cfg.DisplayName[cbCtx.Locale]
+								if label == "" {
+									label = cfg.DisplayName["en"]
+								}
+								opts = append(opts, wasmplugin.Opt(label, id))
+							}
+							return opts
+						},
+					),
+			),
+		),
+	)
+
 	return wasmplugin.Trigger{
 		Name: "all",
 		Type: wasmplugin.TriggerMessenger,
@@ -234,20 +269,7 @@ func find_all_command() wasmplugin.Trigger {
 			"ru": "Последние заказы",
 			"en": "Show recently orders",
 		},
-		Nodes: []wasmplugin.Node{
-			wasmplugin.NewStep("status").
-				LocalizedText(cat.L("filter_by"), wasmplugin.StyleHeader).
-				DynamicOptions("",
-					func(cbCtx *wasmplugin.CallbackContext) []wasmplugin.Option {
-						return []wasmplugin.Option{
-							wasmplugin.Opt(cat.L("pending")[cbCtx.Locale], "Pending"),
-							wasmplugin.Opt(cat.L("prepare")[cbCtx.Locale], "Prepare"),
-							wasmplugin.Opt(cat.L("done")[cbCtx.Locale], "Done"),
-							wasmplugin.Opt(cat.L("skip")[cbCtx.Locale], "Skip"),
-						}
-					},
-				),
-		},
+		Nodes: nodes,
 		Handler: func(ctx *wasmplugin.EventContext) error {
 			certHandler.FindAllOrders(ctx)
 			return nil
@@ -255,87 +277,87 @@ func find_all_command() wasmplugin.Trigger {
 	}
 }
 
-// func get_all_http() wasmplugin.Trigger {
-// 	return wasmplugin.Trigger{
-// 		Name:        "Find all certificate orders",
-// 		Type:        wasmplugin.TriggerHTTP,
-// 		Description: "Find all ordered certificate requests from users.",
-// 		Path:        "/api/certificates/all",
-// 		Methods:     []string{"GET"},
-// 		Handler: func(ctx *wasmplugin.EventContext) error {
-// 			return nil
-// 		},
-// 	}
-// }
+func get_all_http() wasmplugin.Trigger {
+	return wasmplugin.Trigger{
+		Name:        "Find all certificate orders",
+		Type:        wasmplugin.TriggerHTTP,
+		Description: "Find all ordered certificate requests from users.",
+		Path:        "/api/certificates/all",
+		Methods:     []string{"GET"},
+		Handler: func(ctx *wasmplugin.EventContext) error {
+			return nil
+		},
+	}
+}
 
-// func get_details_http() wasmplugin.Trigger {
-// 	return wasmplugin.Trigger{
-// 		Name:        "Certificate order details",
-// 		Type:        wasmplugin.TriggerHTTP,
-// 		Description: "Find concrete certificate order details",
-// 		Path:        "/api/certificates",
-// 		Methods:     []string{"GET"},
-// 		Handler: func(ctx *wasmplugin.EventContext) error {
-// 			return nil
-// 		},
-// 	}
-// }
+func get_details_http() wasmplugin.Trigger {
+	return wasmplugin.Trigger{
+		Name:        "Certificate order details",
+		Type:        wasmplugin.TriggerHTTP,
+		Description: "Find concrete certificate order details",
+		Path:        "/api/certificates",
+		Methods:     []string{"GET"},
+		Handler: func(ctx *wasmplugin.EventContext) error {
+			return nil
+		},
+	}
+}
 
-// func process_http() wasmplugin.Trigger {
-// 	return wasmplugin.Trigger{
-// 		Name:        "Start process certificate order",
-// 		Type:        wasmplugin.TriggerHTTP,
-// 		Description: "Start process certificate order",
-// 		Path:        "/api/certificates/process",
-// 		Methods:     []string{"POST"},
-// 		Handler: func(ctx *wasmplugin.EventContext) error {
-// 			return nil
-// 		},
-// 	}
-// }
+func process_http() wasmplugin.Trigger {
+	return wasmplugin.Trigger{
+		Name:        "Start process certificate order",
+		Type:        wasmplugin.TriggerHTTP,
+		Description: "Start process certificate order",
+		Path:        "/api/certificates/process",
+		Methods:     []string{"POST"},
+		Handler: func(ctx *wasmplugin.EventContext) error {
+			return nil
+		},
+	}
+}
 
-// func reject_http() wasmplugin.Trigger {
-// 	return wasmplugin.Trigger{
-// 		Name:        "Reject certificate order",
-// 		Type:        wasmplugin.TriggerHTTP,
-// 		Description: "Rejection process certificate order",
-// 		Path:        "/api/certificates/reject",
-// 		Methods:     []string{"DELETE"},
-// 		Handler: func(ctx *wasmplugin.EventContext) error {
-// 			return nil
-// 		},
-// 	}
-// }
+func reject_http() wasmplugin.Trigger {
+	return wasmplugin.Trigger{
+		Name:        "Reject certificate order",
+		Type:        wasmplugin.TriggerHTTP,
+		Description: "Rejection process certificate order",
+		Path:        "/api/certificates/reject",
+		Methods:     []string{"DELETE"},
+		Handler: func(ctx *wasmplugin.EventContext) error {
+			return nil
+		},
+	}
+}
 
-// func upload_http() wasmplugin.Trigger {
-// 	return wasmplugin.Trigger{
-// 		Name:        "Upload certificate document",
-// 		Description: "Upload created document to certificate order",
-// 		Type:        wasmplugin.TriggerHTTP,
-// 		Path:        "/api/certificates/upload",
-// 		Methods:     []string{"POST"},
-// 		Handler: func(ctx *wasmplugin.EventContext) error {
-// 			return nil
-// 		},
-// 	}
-// }
+func upload_http() wasmplugin.Trigger {
+	return wasmplugin.Trigger{
+		Name:        "Upload certificate document",
+		Description: "Upload created document to certificate order",
+		Type:        wasmplugin.TriggerHTTP,
+		Path:        "/api/certificates/upload",
+		Methods:     []string{"POST"},
+		Handler: func(ctx *wasmplugin.EventContext) error {
+			return nil
+		},
+	}
+}
 
-// func notify() wasmplugin.Trigger {
-// 	return wasmplugin.Trigger{
-// 		Name:  "on_change_order_status",
-// 		Type:  wasmplugin.TriggerEvent,
-// 		Topic: "certificate_order.updated",
-// 		Handler: func(ctx *wasmplugin.EventContext) error {
-// 			// tr := cat.Tr(ctx.Locale())
-// 			// var payload models.OrderEvent
-// 			// raw := ctx.Event.Payload
-// 			// if err := json.Unmarshal(raw, &payload); err != nil {
-// 			// 	ctx.LogError(fmt.Sprintf("notification listener error: %s", err.Error()))
-// 			// 	return nil
-// 			// }
-// 			// message := fmt.Sprintf(tr("change_status_event"), payload.OrderID, payload.OrderStatus)
-// 			// return ctx.NotifyUser(payload.UserID, message, wasmplugin.PriorityNormal)
-// 			return nil
-// 		},
-// 	}
-// }
+func notify() wasmplugin.Trigger {
+	return wasmplugin.Trigger{
+		Name:  "on_change_order_status",
+		Type:  wasmplugin.TriggerEvent,
+		Topic: "certificate_order.updated",
+		Handler: func(ctx *wasmplugin.EventContext) error {
+			// tr := cat.Tr(ctx.Locale())
+			// var payload models.OrderEvent
+			// raw := ctx.Event.Payload
+			// if err := json.Unmarshal(raw, &payload); err != nil {
+			// 	ctx.LogError(fmt.Sprintf("notification listener error: %s", err.Error()))
+			// 	return nil
+			// }
+			// message := fmt.Sprintf(tr("change_status_event"), payload.OrderID, payload.OrderStatus)
+			// return ctx.NotifyUser(payload.UserID, message, wasmplugin.PriorityNormal)
+			return nil
+		},
+	}
+}

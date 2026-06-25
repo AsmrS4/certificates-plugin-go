@@ -74,15 +74,25 @@ func (r *CertificateImpl) IsOrderPending(id int64) (bool, error) {
 	return exists, err
 }
 
-func (r *CertificateImpl) FindAllWithStatus(userID int64, st entity.CertificateStatus) ([]entity.CertificateApplication, error) {
+func (r *CertificateImpl) IsCancelled(id int64) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(`
+        SELECT EXISTS(
+            SELECT 1 FROM certificate_applications 
+            WHERE id = $1 AND application_status = 'Cancelled'
+        )`, id).Scan(&exists)
+	return exists, err
+}
+
+func (r *CertificateImpl) FindAllWithStatus(userID int64, st entity.CertificateStatus, tp string) ([]entity.CertificateApplication, error) {
 	query := `
         SELECT id, student_id, application_status, certificate_type, obtain_method,
                COALESCE(comment, ''), COALESCE(rejection_reason, ''), created_at
         FROM certificate_applications
-        WHERE student_id = $1 AND application_status = $2
-        ORDER BY created_at DESC LIMIT 10
+        WHERE student_id = $1 AND application_status = $2 AND certificate_type = $3
+        ORDER BY created_at
 		`
-	rows, err := r.db.Query(query, userID, st)
+	rows, err := r.db.Query(query, userID, st, tp)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +106,7 @@ func (r *CertificateImpl) FindAllByStudent(studentID int64) ([]entity.Certificat
         SELECT id, student_id, application_status, certificate_type, obtain_method,
                COALESCE(comment, ''), COALESCE(rejection_reason, ''), created_at
         FROM certificate_applications
-        WHERE student_id = $1
+        WHERE student_id = $1 AND application_status <> 'Cancelled'
         ORDER BY created_at DESC LIMIT 10
     `
 	rows, err := r.db.Query(query, studentID)
@@ -137,7 +147,6 @@ func (r *CertificateImpl) FindByID(id int64) (*entity.CertificateApplication, er
 	if len(formDataJSON) > 0 {
 		var formData map[string]interface{}
 		if err := json.Unmarshal(formDataJSON, &formData); err != nil {
-			// Логируем ошибку, но возвращаем пустую карту, чтобы не ломать ответ
 			found.FormData = make(map[string]interface{})
 		} else {
 			found.FormData = formData

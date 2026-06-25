@@ -38,6 +38,7 @@ type FindOrderRequest struct {
 type FindAllRequest struct {
 	StudentID int64
 	Status    string
+	Type      string
 }
 
 type MessengerService struct {
@@ -52,7 +53,7 @@ func NewMessengerService(repo persistence.CertificateRepo, db *sql.DB) *Messenge
 func (s *MessengerService) SaveOrder(req CreateOrderRequest) (int64, error) {
 	order := &entity.CertificateApplication{
 		StudentID:    req.StudentID,
-		Type:         entity.CertificateType(req.CertificateType),
+		Type:         req.CertificateType,
 		ObtainMethod: entity.ObtainMethod(req.ObtainMethod),
 		Status:       entity.Pending,
 		Comment:      req.Comment,
@@ -108,7 +109,17 @@ func (s *MessengerService) RejectOrder(req RejectOrderRequest) error {
 		}
 		return apperrors.Wrap(apperrors.KeyInternalError, err)
 	}
+	cancelled, err := s.repo.IsCancelled(req.OrderID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return apperrors.New(apperrors.KeyOrderNotFound, req.OrderID)
+		}
+		return apperrors.Wrap(apperrors.KeyInternalError, err)
+	}
 	if !pending {
+		if cancelled {
+			apperrors.New(apperrors.KeyOrderAlreadyCancelled, req.OrderID)
+		}
 		return apperrors.New(apperrors.KeyOrderNotPending, req.OrderID)
 	}
 	if err := s.repo.Cancel(req.OrderID); err != nil {
@@ -135,9 +146,9 @@ func (s *MessengerService) FindAll(req FindAllRequest) ([]*entity.CertificateApp
 	var orders []entity.CertificateApplication
 	var err error
 
-	if req.Status != "" && req.Status != "Skip" {
+	if req.Status != "" && req.Type != "" && req.Status != "Skip" {
 		st := entity.CertificateStatus(req.Status)
-		orders, err = s.repo.FindAllWithStatus(req.StudentID, st)
+		orders, err = s.repo.FindAllWithStatus(req.StudentID, st, req.Type)
 	} else {
 		orders, err = s.repo.FindAllByStudent(req.StudentID)
 	}

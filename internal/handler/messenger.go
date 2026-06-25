@@ -95,7 +95,7 @@ func (h *CertificateHandler) CancelOrder(ctx *wasmplugin.EventContext) error {
 		return nil
 	}
 
-	ctx.Reply(wasmplugin.NewMessage(tr("order_cancelled_successfully", idParam)))
+	ctx.Reply(wasmplugin.NewMessage(tr("order_cancelled_successfully", id)))
 	ctx.Log(fmt.Sprintf("order %d cancelled by user %d", id, ctx.Messenger.UserID))
 	return nil
 }
@@ -129,13 +129,14 @@ func (h *CertificateHandler) FindOrderByID(ctx *wasmplugin.EventContext) error {
 
 func (h *CertificateHandler) FindAllOrders(ctx *wasmplugin.EventContext) error {
 	tr := h.cat.Tr(ctx.Locale())
-
 	status := ctx.Param("status")
+	certType := ctx.Param("type")
 	userID := ctx.Messenger.UserID
 
 	req := service.FindAllRequest{
 		StudentID: userID,
 		Status:    status,
+		Type:      certType,
 	}
 	orders, err := h.service.FindAll(req)
 	if err != nil {

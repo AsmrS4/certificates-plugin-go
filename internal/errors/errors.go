@@ -28,11 +28,12 @@ func Wrap(key string, err error, args ...interface{}) *AppError {
 }
 
 const (
-	KeyOrderNotFound    = "order_not_found"
-	KeyOrderNotPending  = "order_not_pending"
-	KeyInternalError    = "internal_error"
-	KeyInvalidID        = "invalid_id"
-	KeyAttachmentFailed = "attachment_save_failed"
-	KeyFileUploadFailed = "file_upload_failed"
-	KeyValidationFailed = "validation_failed"
+	KeyOrderNotFound         = "order_not_found"
+	KeyOrderNotPending       = "order_not_pending"
+	KeyOrderAlreadyCancelled = "order_cancelled"
+	KeyInternalError         = "internal_error"
+	KeyInvalidID             = "invalid_id"
+	KeyAttachmentFailed      = "attachment_save_failed"
+	KeyFileUploadFailed      = "file_upload_failed"
+	KeyValidationFailed      = "validation_failed"
 )

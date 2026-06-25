@@ -3,8 +3,8 @@ package entity
 type CertificateApplication struct {
 	ID              int64                  `json:"id"`
 	StudentID       int64                  `json:"student_id"`
-	Status          CertificateStatus      `json:"status"`
-	Type            CertificateType        `json:"type"`
+	Status          CertificateStatus      `json:"application_status"`
+	Type            string                 `json:"certificate_type"`
 	ObtainMethod    ObtainMethod           `json:"obtain_method"`
 	Comment         string                 `json:"comment,omitempty"`
 	RejectionReason string                 `json:"rejection_reason"`

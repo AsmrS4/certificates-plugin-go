@@ -10,10 +10,11 @@ type CertificateRepo interface {
 	SaveTx(tx *sql.Tx, c *entity.CertificateApplication) (int64, error)
 	SaveAttachmentsTx(tx *sql.Tx, orderID int64, attachments []entity.CertificateAttachment) error
 	FindByID(id int64) (*entity.CertificateApplication, error)
-	FindAllWithStatus(userID int64, st entity.CertificateStatus) ([]entity.CertificateApplication, error)
+	FindAllWithStatus(userID int64, st entity.CertificateStatus, tp string) ([]entity.CertificateApplication, error)
 	FindAllByStudent(studentID int64) ([]entity.CertificateApplication, error)
 	Cancel(id int64) error
 	IsOrderPending(id int64) (bool, error)
+	IsCancelled(id int64) (bool, error)
 }
 
 type ManagementRepo interface {
