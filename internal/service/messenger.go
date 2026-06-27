@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/AsmrS4/certificates-plugin-go/internal/dto"
 	apperrors "github.com/AsmrS4/certificates-plugin-go/internal/errors"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence/entity"
@@ -19,7 +20,7 @@ type CreateOrderRequest struct {
 	ObtainMethod    string
 	Comment         string
 	FormData        map[string]interface{}
-	Files           []FileInfo
+	Files           []*dto.File
 }
 
 type FileInfo struct {
@@ -156,17 +157,18 @@ func (s *MessengerService) SaveOrder(ctx *wasmplugin.EventContext, req CreateOrd
 	if len(req.Files) > 0 {
 		attachments := make([]entity.CertificateAttachment, len(req.Files))
 		now := time.Now().Format(time.RFC3339)
-		for i, f := range req.Files {
+		for i, file := range req.Files {
 			attachments[i] = entity.CertificateAttachment{
 				OrderID:    orderID,
-				FileID:     f.ID,
-				FileName:   f.Name,
-				FileType:   f.FileType,
-				MimeType:   f.MimeType,
-				Size:       f.Size,
+				FileID:     file.ID,
+				FileName:   file.Name,
+				MIMEType:   file.MIMEType,
+				FileType:   file.FileType,
 				UploadedAt: now,
 			}
+
 		}
+		ctx.Log(fmt.Sprintf("Attachments read before save: %+v", attachments))
 		if err := s.repo.SaveAttachmentsTx(tx, orderID, attachments); err != nil {
 			return 0, apperrors.Wrap(apperrors.KeyAttachmentFailed, err)
 		}
@@ -206,7 +208,7 @@ func (s *MessengerService) RejectOrder(req RejectOrderRequest) error {
 	return nil
 }
 
-func (s *MessengerService) FindOrder(req FindOrderRequest) (*entity.CertificateApplication, error) {
+func (s *MessengerService) GetOrderDetails(ctx *wasmplugin.EventContext, req FindOrderRequest) (*dto.OrderDetails, error) {
 	order, err := s.repo.FindByID(req.OrderID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -217,7 +219,21 @@ func (s *MessengerService) FindOrder(req FindOrderRequest) (*entity.CertificateA
 	if order == nil {
 		return nil, apperrors.New(apperrors.KeyOrderNotFound, req.OrderID)
 	}
-	return order, nil
+
+	attachments, err := s.repo.FindAttachmentsByOrderID(req.OrderID)
+	if err != nil {
+		return nil, apperrors.Wrap(apperrors.KeyInternalError, err)
+	}
+	ctx.Log(fmt.Sprintf("Attachments: %+v", attachments))
+	fileIDs := make([]string, len(attachments))
+	for i, att := range attachments {
+		fileIDs[i] = att.FileID
+	}
+
+	return &dto.OrderDetails{
+		Application: order,
+		FileIDs:     fileIDs,
+	}, nil
 }
 
 func (s *MessengerService) FindAll(req FindAllRequest) ([]*entity.CertificateApplication, error) {

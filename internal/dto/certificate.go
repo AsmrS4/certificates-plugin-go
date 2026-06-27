@@ -28,6 +28,52 @@ type CertificateRequestView struct {
 	GroupCode       string `json:"group_code"`
 }
 
+type CertificateDetails struct {
+	ID              int64                       `json:"id"`
+	StudentID       int64                       `json:"student_id"`
+	Status          string                      `json:"application_status"`
+	Type            string                      `json:"certificate_type"`
+	ObtainMethod    string                      `json:"obtain_method"`
+	Comment         string                      `json:"comment,omitempty"`
+	RejectionReason string                      `json:"rejection_reason,omitempty"`
+	CreatedAt       string                      `json:"created_at"`
+	FormData        map[string]interface{}      `json:"form_data,omitempty"`
+	FullName        string                      `json:"full_name"`
+	NationalityType string                      `json:"nationality_type"`
+	FacultyName     string                      `json:"faculty_name"`
+	GroupCode       string                      `json:"group_code"`
+	FundingType     string                      `json:"funding_type"`
+	EducationForm   string                      `json:"education_form"`
+	StreamName      string                      `json:"stream_name"`
+	PositionStatus  string                      `json:"position_status"`
+	Attachments     []CertificateAttachmentView `json:"attachments,omitempty"`
+	CertificateFile *CertificateFileView        `json:"certificate_file,omitempty"`
+}
+
+type CertificateAttachmentResponse struct {
+	ID         int64  `json:"id"`
+	FileID     string `json:"file_id"`
+	UploadedAt string `json:"uploaded_at"`
+}
+
+type CertificateAttachmentView struct {
+	ID         int64  `json:"id"`
+	FileID     string `json:"file_id"`
+	FileName   string `json:"file_name"`
+	MIMEType   string `json:"mime_type"`
+	FileType   string `json:"file_type"`
+	File_URL   string `json:"file_url,omitempty"`
+	UploadedAt string `json:"uploaded_at"`
+}
+
+type CertificateFileView struct {
+	ID         int64  `json:"id"`
+	FileID     string `json:"file_id"`
+	FileName   string `json:"file_name"`
+	StorageURL string `json:"storage_url"`
+	UploadedAt string `json:"uploaded_at"`
+}
+
 type UserDetails struct {
 	FullName        string
 	NationalityType string `msgpack:"nationality_type,omitempty" json:"nationality_type,omitempty"`
@@ -42,8 +88,13 @@ type UserDetails struct {
 }
 
 type OrderDetails struct {
-	User        *UserDetails
 	Application *entity.CertificateApplication
-	Certificate *entity.CertificateDocument
-	Attachments []entity.CertificateAttachment
+	FileIDs     []string
+}
+
+type File struct {
+	ID       string
+	Name     string
+	MIMEType string
+	FileType string
 }

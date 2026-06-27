@@ -1,17 +1,15 @@
 package entity
 
-import "time"
-
 type CertUser struct {
-	ID            int64     `db:"id"`
-	FullName      string    `db:"full_name"`
-	ExternalID    string    `db:"external_id"`
-	TsuAccountsID string    `db:"tsu_accounts_id"`
-	TsuLinked     bool      `db:"tsu_linked"`
-	IsTeacher     bool      `db:"is_teacher"`
-	IsStudent     bool      `db:"is_student"`
-	IsDeanOffice  bool      `db:"is_dean_office"`
-	UpdatedAt     time.Time `db:"updated_at"`
+	ID            int64  `db:"id"`
+	FullName      string `db:"full_name"`
+	ExternalID    string `db:"external_id"`
+	TsuAccountsID string `db:"tsu_accounts_id"`
+	TsuLinked     bool   `db:"tsu_linked"`
+	IsTeacher     bool   `db:"is_teacher"`
+	IsStudent     bool   `db:"is_student"`
+	IsDeanOffice  bool   `db:"is_dean_office"`
+	UpdatedAt     string `db:"updated_at"`
 }
 
 type CertUserPosition struct {

@@ -47,10 +47,8 @@ func (r *CertificateImpl) SaveAttachmentsTx(tx *sql.Tx, orderID int64, attachmen
 	}
 	for _, att := range attachments {
 		_, err := tx.Exec(
-			`INSERT INTO certificate_attachments(
-                order_id, file_id, file_name, file_type, mime_type, size, uploaded_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-			orderID, att.FileID, att.FileName, att.FileType, att.MimeType, att.Size, att.UploadedAt,
+			`INSERT INTO certificate_attachments(order_id, file_id, file_name, mime_type, file_type) VALUES ($1, $2, $3, $4, $5)`,
+			orderID, att.FileID, att.FileName, att.MIMEType, att.FileType,
 		)
 		if err != nil {
 			return fmt.Errorf("insert attachment: %w", err)
@@ -157,6 +155,36 @@ func (r *CertificateImpl) FindByID(id int64) (*entity.CertificateApplication, er
 
 	return &found, nil
 }
+
+func (r *CertificateImpl) FindAttachmentsByOrderID(orderID int64) ([]entity.CertificateAttachment, error) {
+	rows, err := r.db.Query(`
+        SELECT id, order_id, file_id, uploaded_at
+        FROM certificate_attachments
+        WHERE order_id = $1
+        ORDER BY uploaded_at DESC
+    `, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var attachments []entity.CertificateAttachment
+	for rows.Next() {
+		var att entity.CertificateAttachment
+		err := rows.Scan(
+			&att.ID,
+			&att.OrderID,
+			&att.FileID,
+			&att.UploadedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		attachments = append(attachments, att)
+	}
+	return attachments, rows.Err()
+}
+
 func scanItems(rows *sql.Rows) ([]entity.CertificateApplication, error) {
 	var items []entity.CertificateApplication
 	for rows.Next() {

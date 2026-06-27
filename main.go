@@ -78,7 +78,7 @@ func main() {
 	wasmplugin.Run(wasmplugin.Plugin{
 		ID:      "certificates_plugin",
 		Name:    "Заказ справки из деканата",
-		Version: "1.0.18",
+		Version: "1.0.3",
 		Requirements: []wasmplugin.Requirement{
 			wasmplugin.Database("Store applications for a certificate plugin").Build(),
 			wasmplugin.File("Store and serve uploaded documents appendix to the certificate plugin").Build(),
@@ -94,6 +94,9 @@ func main() {
 			find_command(),
 			find_all_command(),
 			get_all_http(),
+			get_details_http(),
+			process_http(),
+			reject_http(),
 		},
 	})
 }
@@ -144,15 +147,6 @@ func order_command() wasmplugin.Trigger {
 		}
 	}
 
-	nodes = append(nodes, wasmplugin.NewStep("attachments").
-		LocalizedText(cat.L("upload_attachments"), wasmplugin.StylePlain).
-		VisibleWhenFunc(func(ctx *wasmplugin.CallbackContext) bool {
-			typ := ctx.Params["type"]
-			cfg, ok := registry[typ]
-			return ok && cfg.RequiresAttachments
-		}),
-	)
-
 	nodes = append(nodes, wasmplugin.NewStep("obtain_method").
 		LocalizedText(cat.L("select_certificate_obtain"), wasmplugin.StylePlain).
 		DynamicOptions("",
@@ -163,6 +157,15 @@ func order_command() wasmplugin.Trigger {
 				}
 			},
 		),
+	)
+
+	nodes = append(nodes, wasmplugin.NewStep("attachments").
+		LocalizedText(cat.L("upload_attachments"), wasmplugin.StylePlain).
+		VisibleWhenFunc(func(ctx *wasmplugin.CallbackContext) bool {
+			typ := ctx.Params["type"]
+			cfg, ok := registry[typ]
+			return ok && cfg.RequiresAttachments
+		}),
 	)
 
 	return wasmplugin.Trigger{
@@ -311,9 +314,10 @@ func get_details_http() wasmplugin.Trigger {
 		Name:        "Certificate order details",
 		Type:        wasmplugin.TriggerHTTP,
 		Description: "Find concrete certificate order details",
-		Path:        "/api/certificates",
+		Path:        "/api/certificates/details",
 		Methods:     []string{"GET"},
 		Handler: func(ctx *wasmplugin.EventContext) error {
+			httpController.GetDetails(ctx)
 			return nil
 		},
 	}
@@ -327,6 +331,7 @@ func process_http() wasmplugin.Trigger {
 		Path:        "/api/certificates",
 		Methods:     []string{"POST"},
 		Handler: func(ctx *wasmplugin.EventContext) error {
+			httpController.Process(ctx)
 			return nil
 		},
 	}
@@ -340,6 +345,7 @@ func reject_http() wasmplugin.Trigger {
 		Path:        "/api/certificates",
 		Methods:     []string{"DELETE"},
 		Handler: func(ctx *wasmplugin.EventContext) error {
+			httpController.Reject(ctx)
 			return nil
 		},
 	}

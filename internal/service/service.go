@@ -27,6 +27,21 @@ func (s *ManagementService) FindRequests(filter dto.FindRequestsFilter) ([]dto.C
 	return results, total, nil
 }
 
+func (s *ManagementService) FindWithUserDetails(id int64) (*dto.CertificateDetails, error) {
+	if id <= 0 {
+		return nil, apperrors.New(apperrors.KeyInvalidID, id)
+	}
+
+	details, err := s.managementRepo.FindWithUserDetails(id)
+	if err != nil {
+		return nil, apperrors.Wrap(apperrors.KeyInternalError, err)
+	}
+	if details == nil {
+		return nil, apperrors.New(apperrors.KeyOrderNotFound, id)
+	}
+	return details, nil
+}
+
 func (s *ManagementService) RejectOrder(id int64, reason string) error {
 	exists, err := s.managementRepo.IsExists(id)
 	if err != nil {

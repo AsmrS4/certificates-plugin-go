@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/AsmrS4/certificates-plugin-go/internal/dto"
 	apperrors "github.com/AsmrS4/certificates-plugin-go/internal/errors"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence/entity"
 	"github.com/AsmrS4/certificates-plugin-go/internal/service"
@@ -40,17 +41,29 @@ func (h *CertificateHandler) CreateOrder(ctx *wasmplugin.EventContext) error {
 		formData[key] = value
 	}
 
-	var files []service.FileInfo
+	var files []*dto.File
 	if ctx.HasFiles() {
 		for _, f := range ctx.Files() {
-			files = append(files, service.FileInfo{
-				ID:       f.ID,
-				Name:     f.Name,
-				FileType: f.FileType,
-				MimeType: f.MIMEType,
-				Size:     f.Size,
-			})
+			data, err := ctx.FileReadAll(f.ID)
+			if err != nil {
+				ctx.LogError(fmt.Sprintf("failed to read file %s: %v", f.Name, err))
+				continue
+			}
+			stored, err := ctx.FileStore(f.Name, f.MIMEType, f.FileType, data)
+			if err != nil {
+				ctx.LogError(fmt.Sprintf("failed to store file %s: %v", f.Name, err))
+				continue
+			}
+			var file = &dto.File{
+				ID:       stored.ID,
+				Name:     stored.Name,
+				MIMEType: stored.MIMEType,
+				FileType: stored.FileType,
+			}
+			files = append(files, file)
 		}
+	} else {
+		ctx.LogError(fmt.Sprintf("No file attachment"))
 	}
 
 	req := service.CreateOrderRequest{
@@ -111,19 +124,25 @@ func (h *CertificateHandler) FindOrderByID(ctx *wasmplugin.EventContext) error {
 	}
 
 	req := service.FindOrderRequest{OrderID: id}
-	order, err := h.service.FindOrder(req)
+	details, err := h.service.GetOrderDetails(ctx, req)
 	if err != nil {
 		handleMessengerError(ctx, tr, err)
 		return nil
 	}
-	if order == nil {
+	if details.Application == nil {
 		ctx.Reply(wasmplugin.NewMessage(fmt.Sprintf(tr("order_not_found"), id)))
 		return nil
 	}
 
-	msg := h.formatOrderMessage(order, tr)
-	ctx.Reply(wasmplugin.NewMessage(msg))
-	ctx.Log(fmt.Sprintf("user %d viewed order %d", ctx.Messenger.UserID, id))
+	msgText := h.formatOrderMessage(details.Application, tr)
+	msg := wasmplugin.NewMessage(msgText)
+
+	if len(details.FileIDs) == 0 {
+		ctx.Log(fmt.Sprintf("user %d viewed order %d (no files)", ctx.Messenger.UserID, id))
+	}
+
+	ctx.Reply(msg)
+	ctx.Log(fmt.Sprintf("user %d viewed order %d with %d file(s)", ctx.Messenger.UserID, id))
 	return nil
 }
 

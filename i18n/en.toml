@@ -56,10 +56,11 @@ access_denied = "Access denied. Only students can order certificates"
 # Responses
 order_created = "✅ Certificate ordered successfully! ID: %d"
 order_found = "🔎 Certificate ID: %d"
-order_cancelled_successfully = "✅ Certificate order ID: %d was cancelled successfully!"
+order_cancelled_successfully = "✅ Certificate order was cancelled successfully!"
 no_orders = "🤷‍♂️ No certificate orders."
 orders_header = "🔎 Found orders (%d items):"
 change_status_event = "🔔 The status of the certificate order with ID: %d has been changed to %s"
+cancel_cancelled = "Cancel cancelled"
 
 status_Pending = "Pending ⏳"
 status_Rejected = "Rejected ❌"

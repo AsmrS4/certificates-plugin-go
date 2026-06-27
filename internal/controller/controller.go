@@ -59,6 +59,34 @@ func (h *HttpController) GetAll(ctx *wasmplugin.EventContext) {
 		"offset": filter.Offset,
 	})
 }
+
+func (h *HttpController) GetDetails(ctx *wasmplugin.EventContext) {
+	idParam := ctx.HTTP.Query["id"]
+	if idParam == "" {
+		ctx.JSON(400, map[string]string{"error": "missing id parameter"})
+		return
+	}
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		ctx.JSON(400, map[string]string{"error": "invalid id format"})
+		return
+	}
+
+	details, err := h.m.FindWithUserDetails(id)
+	if err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+	for idx, file := range details.Attachments {
+		url, err := ctx.FileURL(file.FileID)
+		if err != nil {
+			continue
+		}
+		details.Attachments[idx].File_URL = url
+	}
+	ctx.JSON(200, details)
+}
+
 func (h *HttpController) Reject(ctx *wasmplugin.EventContext) {
 	idParam := ctx.HTTP.Query["id"]
 	if idParam == "" {

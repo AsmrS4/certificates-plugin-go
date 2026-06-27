@@ -56,10 +56,11 @@ access_denied = "Доступ запрещён. Заказ справок дос
 # Responses
 order_created = "✅ Справка успешно заказана! ID: %d"
 order_found = "🔎 Заявка ID: %d"
-order_cancelled_successfully = "✅ Заказ справки ID: %d успешно отменен!"
+order_cancelled_successfully = "✅ Заказ справки успешно отменен!"
 no_orders = "🤷‍♂️ Заявки не найдены."
 orders_header = "🔎 Найденные заявки (%d элем.):"
 change_status_event = "🔔 Статус заказанной справки ID: %d изменился на %s"
+cancel_cancelled = "Операция отменена"
 
 status_Pending = "Отправлена ⏳"
 status_Rejected = "Отклонена ❌"

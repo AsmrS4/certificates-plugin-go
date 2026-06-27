@@ -2,6 +2,8 @@ package repo
 
 import (
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/AsmrS4/certificates-plugin-go/internal/dto"
@@ -12,6 +14,135 @@ var _ repository.ManagementRepo = (*ManagementImpl)(nil)
 
 type ManagementImpl struct {
 	db *sql.DB
+}
+
+func (r *ManagementImpl) FindWithUserDetails(id int64) (*dto.CertificateDetails, error) {
+	query := `
+		SELECT 
+			ca.id, ca.student_id, ca.application_status, ca.certificate_type,
+			ca.obtain_method, COALESCE(ca.comment, '') as comment,
+			COALESCE(ca.rejection_reason, '') as rejection_reason,
+			ca.created_at, ca.form_data,
+			COALESCE(cu.full_name, '') as full_name,
+			COALESCE(cug.nationality_type, '') as nationality_type,
+			COALESCE(cug.faculty_name, '') as faculty_name,
+			COALESCE(cug.group_code, '') as group_code,
+			COALESCE(cug.funding_type, '') as funding_type,
+			COALESCE(cug.education_form, '') as education_form,
+			COALESCE(cug.stream_name, '') as stream_name,
+			COALESCE(cug.status, '') as position_status
+		FROM certificate_applications ca
+		LEFT JOIN cert_users cu ON ca.student_id = cu.id
+		LEFT JOIN cert_user_positions cug ON cu.id = cug.user_id AND cug.position_type = 'student'
+		WHERE ca.id = $1
+	`
+
+	var details dto.CertificateDetails
+	var formDataJSON []byte
+
+	err := r.db.QueryRow(query, id).Scan(
+		&details.ID,
+		&details.StudentID,
+		&details.Status,
+		&details.Type,
+		&details.ObtainMethod,
+		&details.Comment,
+		&details.RejectionReason,
+		&details.CreatedAt,
+		&formDataJSON,
+		&details.FullName,
+		&details.NationalityType,
+		&details.FacultyName,
+		&details.GroupCode,
+		&details.FundingType,
+		&details.EducationForm,
+		&details.StreamName,
+		&details.PositionStatus,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	if len(formDataJSON) > 0 {
+		var formData map[string]interface{}
+		if err := json.Unmarshal(formDataJSON, &formData); err != nil {
+			details.FormData = make(map[string]interface{})
+		} else {
+			details.FormData = formData
+		}
+	} else {
+		details.FormData = make(map[string]interface{})
+	}
+
+	attachments, err := r.findAttachmentsByOrderID(id)
+	if err != nil {
+		return nil, err
+	}
+	details.Attachments = attachments
+
+	certFile, err := r.findCertificateFileByOrderID(id)
+	if err != nil {
+		return nil, err
+	}
+	details.CertificateFile = certFile
+
+	return &details, nil
+}
+
+func (r *ManagementImpl) findAttachmentsByOrderID(orderID int64) ([]dto.CertificateAttachmentView, error) {
+	rows, err := r.db.Query(`
+		SELECT id, file_id, file_name, mime_type, file_type, uploaded_at
+		FROM certificate_attachments
+		WHERE order_id = $1
+		ORDER BY uploaded_at DESC
+	`, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var attachments []dto.CertificateAttachmentView
+	for rows.Next() {
+		var att dto.CertificateAttachmentView
+		err := rows.Scan(
+			&att.ID,
+			&att.FileID,
+			&att.FileName,
+			&att.MIMEType,
+			&att.FileType,
+			&att.UploadedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		attachments = append(attachments, att)
+	}
+	return attachments, rows.Err()
+}
+
+func (r *ManagementImpl) findCertificateFileByOrderID(orderID int64) (*dto.CertificateFileView, error) {
+	var certFile dto.CertificateFileView
+	err := r.db.QueryRow(`
+		SELECT id, file_id, file_name, storage_url, uploaded_at
+		FROM certificate_documents
+		WHERE order_id = $1
+	`, orderID).Scan(
+		&certFile.ID,
+		&certFile.FileID,
+		&certFile.FileName,
+		&certFile.StorageURL,
+		&certFile.UploadedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &certFile, nil
 }
 
 func NewManagementRepo(db *sql.DB) *ManagementImpl {

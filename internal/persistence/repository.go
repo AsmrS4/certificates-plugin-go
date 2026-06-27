@@ -11,6 +11,7 @@ type CertificateRepo interface {
 	SaveTx(tx *sql.Tx, c *entity.CertificateApplication) (int64, error)
 	SaveAttachmentsTx(tx *sql.Tx, orderID int64, attachments []entity.CertificateAttachment) error
 	FindByID(id int64) (*entity.CertificateApplication, error)
+	FindAttachmentsByOrderID(orderID int64) ([]entity.CertificateAttachment, error)
 	FindAllWithStatus(userID int64, st entity.CertificateStatus, tp string) ([]entity.CertificateApplication, error)
 	FindAllByStudent(studentID int64) ([]entity.CertificateApplication, error)
 	Cancel(id int64) error
@@ -27,6 +28,7 @@ type ManagementRepo interface {
 	IsExists(id int64) (bool, error)
 	IsProcessing(id int64) (bool, error)
 	FindRequests(filter *dto.FindRequestsFilter) ([]dto.CertificateRequestView, int64, error)
+	FindWithUserDetails(id int64) (*dto.CertificateDetails, error)
 }
 
 type UserRepo interface {
