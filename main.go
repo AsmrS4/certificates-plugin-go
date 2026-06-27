@@ -5,6 +5,7 @@ import (
 	"embed"
 	"log"
 
+	"github.com/AsmrS4/certificates-plugin-go/internal/controller"
 	"github.com/AsmrS4/certificates-plugin-go/internal/handler"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence/repo"
@@ -29,10 +30,12 @@ var (
 )
 
 var (
-	db           *sql.DB
-	certRepo     persistence.CertificateRepo
-	messengerSvc *service.MessengerService
-	certHandler  *handler.CertificateHandler
+	db             *sql.DB
+	repository     persistence.CertificateRepo
+	messengerSvc   *service.MessengerService
+	managementSvc  *service.ManagementService
+	certHandler    *handler.CertificateHandler
+	httpController *controller.HttpController
 )
 
 func initDependencies() error {
@@ -41,9 +44,15 @@ func initDependencies() error {
 	if err != nil {
 		return err
 	}
-	certRepo = repo.NewRepo(db)
-	messengerSvc = service.NewMessengerService(certRepo, db)
+
+	repository = repo.NewRepo(db)
+
+	messengerSvc = service.NewMessengerService(repository, db)
+	managementSvc = service.NewManagementService(repository, db)
+
 	certHandler = handler.NewCertificateHandler(messengerSvc, cat)
+	httpController = httpController.NewController(managementSvc, cat)
+
 	return nil
 }
 
