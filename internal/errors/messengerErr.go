@@ -36,4 +36,7 @@ const (
 	KeyAttachmentFailed      = "attachment_save_failed"
 	KeyFileUploadFailed      = "file_upload_failed"
 	KeyValidationFailed      = "validation_failed"
+	KeyAccessDenied          = "access_denied"
+	KeyTsuNotLinked          = "link_tsu_account_required"
+	KeyUserNotFound          = "user_not_found"
 )

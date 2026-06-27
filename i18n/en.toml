@@ -50,6 +50,8 @@ file_upload_failed = "❌ Failed to upload file"
 validation_failed = "Validation error: %s"
 technical_error = "Technical error"
 comment_too_long = "❌ Comment cannot exceed 255 characters."
+link_tsu_account_required = "Please link your TSU account to order a certificate"
+access_denied = "Access denied. Only students can order certificates"
 
 # Responses
 order_created = "✅ Certificate ordered successfully! ID: %d"

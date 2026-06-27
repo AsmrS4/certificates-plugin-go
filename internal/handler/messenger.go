@@ -62,7 +62,7 @@ func (h *CertificateHandler) CreateOrder(ctx *wasmplugin.EventContext) error {
 		Files:           files,
 	}
 
-	orderID, err := h.service.SaveOrder(req)
+	orderID, err := h.service.SaveOrder(ctx, req)
 	if err != nil {
 		handleMessengerError(ctx, tr, err)
 		return nil
@@ -174,6 +174,7 @@ func (h *CertificateHandler) formatOrderMessage(order *entity.CertificateApplica
 
 func handleMessengerError(ctx *wasmplugin.EventContext, tr func(key string, args ...any) string, err error) {
 	var appErr *apperrors.AppError
+
 	if errors.As(err, &appErr) {
 		msg := tr(appErr.Key, appErr.Args...)
 		ctx.Reply(wasmplugin.NewMessage(msg))

@@ -3,11 +3,14 @@ package service
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	apperrors "github.com/AsmrS4/certificates-plugin-go/internal/errors"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence/entity"
+
+	wasmplugin "github.com/SuperBotForge/sdk/go-sdk"
 )
 
 type CreateOrderRequest struct {
@@ -42,15 +45,90 @@ type FindAllRequest struct {
 }
 
 type MessengerService struct {
-	repo persistence.CertificateRepo
-	db   *sql.DB
+	repo     persistence.CertificateRepo
+	userRepo persistence.UserRepo
+	db       *sql.DB
 }
 
-func NewMessengerService(repo persistence.CertificateRepo, db *sql.DB) *MessengerService {
-	return &MessengerService{repo: repo, db: db}
+func NewMessengerService(repo persistence.CertificateRepo, userRepo persistence.UserRepo, db *sql.DB) *MessengerService {
+	return &MessengerService{repo: repo, userRepo: userRepo, db: db}
 }
 
-func (s *MessengerService) SaveOrder(req CreateOrderRequest) (int64, error) {
+func (s *MessengerService) validateAndSaveUser(ctx *wasmplugin.EventContext, userID int64) (*entity.CertUser, []entity.CertUserPosition, error) {
+	users, err := ctx.GetUsersInfo([]int64{userID})
+	if err != nil {
+		return nil, nil, apperrors.Wrap(apperrors.KeyInternalError, err)
+	}
+	if len(users) == 0 {
+		return nil, nil, apperrors.New(apperrors.KeyUserNotFound, userID)
+	}
+
+	info := users[0]
+	if info.TsuAccountsID == "" || !info.TsuLinked {
+		return nil, nil, apperrors.New(apperrors.KeyTsuNotLinked)
+	}
+	if info.IsDeanOffice {
+		return nil, nil, apperrors.New(apperrors.KeyAccessDenied)
+	}
+	if info.IsTeacher {
+		return nil, nil, apperrors.New(apperrors.KeyAccessDenied)
+	}
+
+	isStudent := false
+	for _, pos := range info.Positions {
+		if pos.PositionType == "student" {
+			isStudent = true
+			break
+		}
+	}
+	if !isStudent {
+		return nil, nil, apperrors.New(apperrors.KeyAccessDenied)
+	}
+
+	user := &entity.CertUser{
+		ID:            info.ID,
+		FullName:      info.FullName,
+		ExternalID:    info.ExternalID,
+		TsuAccountsID: info.TsuAccountsID,
+		TsuLinked:     info.TsuLinked,
+		IsTeacher:     info.IsTeacher,
+		IsStudent:     info.IsStudent,
+		IsDeanOffice:  info.IsDeanOffice,
+	}
+
+	var positions []entity.CertUserPosition
+	for _, pos := range info.Positions {
+		positions = append(positions, entity.CertUserPosition{
+			UserID:          info.ID,
+			PositionType:    pos.PositionType,
+			Status:          pos.Status,
+			NationalityType: pos.NationalityType,
+			FundingType:     pos.FundingType,
+			EducationForm:   pos.EducationForm,
+			FacultyName:     pos.FacultyName,
+			DepartmentName:  pos.DepartmentName,
+			ProgramName:     pos.ProgramName,
+			StreamName:      pos.StreamName,
+			GroupCode:       pos.GroupCode,
+			GroupName:       pos.GroupName,
+		})
+	}
+
+	_, err = s.userRepo.SaveOrUpdateUser(user, positions)
+
+	if err != nil {
+		ctx.LogError(fmt.Sprintf("Save user failed: %+v", err.Error()))
+		return nil, nil, apperrors.Wrap(apperrors.KeyInternalError, err)
+	}
+	return user, positions, nil
+}
+
+func (s *MessengerService) SaveOrder(ctx *wasmplugin.EventContext, req CreateOrderRequest) (int64, error) {
+	_, _, err := s.validateAndSaveUser(ctx, req.StudentID)
+	if err != nil {
+		return 0, err
+	}
+
 	order := &entity.CertificateApplication{
 		StudentID:    req.StudentID,
 		Type:         req.CertificateType,
@@ -118,7 +196,7 @@ func (s *MessengerService) RejectOrder(req RejectOrderRequest) error {
 	}
 	if !pending {
 		if cancelled {
-			apperrors.New(apperrors.KeyOrderAlreadyCancelled, req.OrderID)
+			return apperrors.New(apperrors.KeyOrderAlreadyCancelled, req.OrderID)
 		}
 		return apperrors.New(apperrors.KeyOrderNotPending, req.OrderID)
 	}

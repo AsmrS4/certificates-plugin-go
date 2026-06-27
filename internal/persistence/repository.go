@@ -26,3 +26,7 @@ type ManagementRepo interface {
 	IsExists(id int64) (bool, error)
 	IsProcessing(id int64) (bool, error)
 }
+
+type UserRepo interface {
+	SaveOrUpdateUser(user *entity.CertUser, positions []entity.CertUserPosition) (bool, error)
+}

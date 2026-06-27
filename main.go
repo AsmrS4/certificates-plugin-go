@@ -32,6 +32,7 @@ var (
 var (
 	db             *sql.DB
 	repository     persistence.CertificateRepo
+	userRepository persistence.UserRepo
 	messengerSvc   *service.MessengerService
 	managementSvc  *service.ManagementService
 	certHandler    *handler.CertificateHandler
@@ -46,8 +47,9 @@ func initDependencies() error {
 	}
 
 	repository = repo.NewRepo(db)
+	userRepository = repo.NewUserRepo(db)
 
-	messengerSvc = service.NewMessengerService(repository, db)
+	messengerSvc = service.NewMessengerService(repository, userRepository, db)
 	managementSvc = service.NewManagementService(repository, db)
 
 	certHandler = handler.NewCertificateHandler(messengerSvc, cat)
@@ -74,10 +76,11 @@ func main() {
 	wasmplugin.Run(wasmplugin.Plugin{
 		ID:      "certificates_plugin",
 		Name:    "Заказ справки из деканата",
-		Version: "1.0.9",
+		Version: "1.0.17",
 		Requirements: []wasmplugin.Requirement{
 			wasmplugin.Database("Store applications for a certificate plugin").Build(),
 			wasmplugin.File("Store and serve uploaded documents appendix to the certificate plugin").Build(),
+			wasmplugin.UserInfoReq("Read user profiles").Build(),
 			wasmplugin.NotifyReq("Send notifications to users").Build(),
 			wasmplugin.EventsReq("Public events to users").Build(),
 			wasmplugin.UserInfoReq("Student info").Build(),
@@ -317,7 +320,7 @@ func process_http() wasmplugin.Trigger {
 		Name:        "Start process certificate order",
 		Type:        wasmplugin.TriggerHTTP,
 		Description: "Start process certificate order",
-		Path:        "/api/certificates/process",
+		Path:        "/api/certificates",
 		Methods:     []string{"POST"},
 		Handler: func(ctx *wasmplugin.EventContext) error {
 			return nil
@@ -330,7 +333,7 @@ func reject_http() wasmplugin.Trigger {
 		Name:        "Reject certificate order",
 		Type:        wasmplugin.TriggerHTTP,
 		Description: "Rejection process certificate order",
-		Path:        "/api/certificates/reject",
+		Path:        "/api/certificates",
 		Methods:     []string{"DELETE"},
 		Handler: func(ctx *wasmplugin.EventContext) error {
 			return nil
