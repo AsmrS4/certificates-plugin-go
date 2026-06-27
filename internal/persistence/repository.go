@@ -3,6 +3,7 @@ package persistence
 import (
 	"database/sql"
 
+	"github.com/AsmrS4/certificates-plugin-go/internal/dto"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence/entity"
 )
 
@@ -25,6 +26,7 @@ type ManagementRepo interface {
 	IsPending(id int64) (bool, error)
 	IsExists(id int64) (bool, error)
 	IsProcessing(id int64) (bool, error)
+	FindRequests(filter *dto.FindRequestsFilter) ([]dto.CertificateRequestView, int64, error)
 }
 
 type UserRepo interface {

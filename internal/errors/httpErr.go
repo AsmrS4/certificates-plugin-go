@@ -56,9 +56,10 @@ func InternalServer(key string, err error, args ...interface{}) *HTTPError {
 }
 
 const (
-	KeyHTTPBadRequest     = "http_bad_request"
-	KeyHTTPUnauthorized   = "http_unauthorized"
-	KeyHTTPForbidden      = "http_forbidden"
-	KeyHTTPNotFound       = "http_not_found"
-	KeyHTTPInternalServer = "http_internal_server"
+	KeyHTTPBadRequest       = "http_bad_request"
+	KeyHTTPUnauthorized     = "http_unauthorized"
+	KeyHTTPForbidden        = "http_forbidden"
+	KeyHTTPNotFound         = "http_not_found"
+	KeyHTTPInternalServer   = "http_internal_server"
+	KeyOrderNotInProcessing = "http_order_not_in_processing"
 )

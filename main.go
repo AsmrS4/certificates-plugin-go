@@ -32,6 +32,7 @@ var (
 var (
 	db             *sql.DB
 	repository     persistence.CertificateRepo
+	management     persistence.ManagementRepo
 	userRepository persistence.UserRepo
 	messengerSvc   *service.MessengerService
 	managementSvc  *service.ManagementService
@@ -47,13 +48,14 @@ func initDependencies() error {
 	}
 
 	repository = repo.NewRepo(db)
+	management = repo.NewManagementRepo(db)
 	userRepository = repo.NewUserRepo(db)
 
 	messengerSvc = service.NewMessengerService(repository, userRepository, db)
-	managementSvc = service.NewManagementService(repository, db)
+	managementSvc = service.NewManagementService(management, &userRepository)
 
 	certHandler = handler.NewCertificateHandler(messengerSvc, cat)
-	httpController = httpController.NewController(managementSvc, cat)
+	httpController = controller.NewHttpController(managementSvc, cat)
 
 	return nil
 }
@@ -76,7 +78,7 @@ func main() {
 	wasmplugin.Run(wasmplugin.Plugin{
 		ID:      "certificates_plugin",
 		Name:    "Заказ справки из деканата",
-		Version: "1.0.17",
+		Version: "1.0.18",
 		Requirements: []wasmplugin.Requirement{
 			wasmplugin.Database("Store applications for a certificate plugin").Build(),
 			wasmplugin.File("Store and serve uploaded documents appendix to the certificate plugin").Build(),
@@ -91,6 +93,7 @@ func main() {
 			cancel_command(),
 			find_command(),
 			find_all_command(),
+			get_all_http(),
 		},
 	})
 }
@@ -297,6 +300,7 @@ func get_all_http() wasmplugin.Trigger {
 		Path:        "/api/certificates/all",
 		Methods:     []string{"GET"},
 		Handler: func(ctx *wasmplugin.EventContext) error {
+			httpController.GetAll(ctx)
 			return nil
 		},
 	}

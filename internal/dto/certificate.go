@@ -1,18 +1,31 @@
 package dto
 
 import (
-	"time"
-
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence/entity"
 )
 
-type OrderFilter struct {
-	CertStatus      *entity.CertificateStatus
-	CertificateType string
-	DateFrom        *time.Time
-	DateTo          *time.Time
+type FindRequestsFilter struct {
+	FullName        string
+	NationalityType string
+	FacultyName     string
+	GroupCode       string
+	Status          string
+	Type            string
 	Limit           int
 	Offset          int
+}
+
+type CertificateRequestView struct {
+	ID              int64  `json:"id"`
+	StudentID       int64  `json:"student_id"`
+	Status          string `json:"status"`
+	Type            string `json:"type"`
+	ObtainMethod    string `json:"obtain_method"`
+	CreatedAt       string `json:"created_at"`
+	FullName        string `json:"full_name"`
+	NationalityType string `json:"nationality_type"`
+	FacultyName     string `json:"faculty_name"`
+	GroupCode       string `json:"group_code"`
 }
 
 type UserDetails struct {
