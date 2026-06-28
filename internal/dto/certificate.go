@@ -21,6 +21,7 @@ type CertificateRequestView struct {
 	Status          string `json:"status"`
 	Type            string `json:"type"`
 	ObtainMethod    string `json:"obtain_method"`
+	RejectionReason string `json:"rejection_reason,omitempty"`
 	CreatedAt       string `json:"created_at"`
 	FullName        string `json:"full_name"`
 	NationalityType string `json:"nationality_type"`

@@ -81,7 +81,7 @@ func main() {
 	wasmplugin.Run(wasmplugin.Plugin{
 		ID:      "certificates_plugin",
 		Name:    "Заказ справки из деканата",
-		Version: "1.0.25",
+		Version: "1.0.49",
 		Requirements: []wasmplugin.Requirement{
 			wasmplugin.Database("Store applications for a certificate plugin").Build(),
 			wasmplugin.File("Store and serve uploaded documents appendix to the certificate plugin").Build(),
@@ -97,6 +97,8 @@ func main() {
 			find_command(),
 			find_all_command(),
 			get_all_http(),
+			get_all_foreign_http(),
+			get_history_http(),
 			get_details_http(),
 			process_http(),
 			reject_http(),
@@ -305,6 +307,34 @@ func get_all_http() wasmplugin.Trigger {
 		Methods:     []string{"GET"},
 		Handler: func(ctx *wasmplugin.EventContext) error {
 			httpController.GetAll(ctx)
+			return nil
+		},
+	}
+}
+
+func get_all_foreign_http() wasmplugin.Trigger {
+	return wasmplugin.Trigger{
+		Name:        "Find all foreign certificate orders",
+		Type:        wasmplugin.TriggerHTTP,
+		Description: "Find all ordered certificate requests from foreign students.",
+		Path:        "/api/certificates/foreign",
+		Methods:     []string{"GET"},
+		Handler: func(ctx *wasmplugin.EventContext) error {
+			httpController.GetAllForeign(ctx)
+			return nil
+		},
+	}
+}
+
+func get_history_http() wasmplugin.Trigger {
+	return wasmplugin.Trigger{
+		Name:        "Find all processed orders",
+		Type:        wasmplugin.TriggerHTTP,
+		Description: "Find all processed requests.",
+		Path:        "/api/certificates/history",
+		Methods:     []string{"GET"},
+		Handler: func(ctx *wasmplugin.EventContext) error {
+			httpController.GetHistory(ctx)
 			return nil
 		},
 	}

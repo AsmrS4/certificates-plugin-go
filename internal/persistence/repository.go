@@ -29,6 +29,7 @@ type ManagementRepo interface {
 	IsExists(id int64) (bool, error)
 	IsProcessing(id int64) (bool, error)
 	FindRequests(filter *dto.FindRequestsFilter) ([]dto.CertificateRequestView, int64, error)
+	HistoryRequests(filter *dto.FindRequestsFilter) ([]dto.CertificateRequestView, int64, error)
 	FindWithUserDetails(ctx *wasmplugin.EventContext, id int64) (*dto.CertificateDetails, error)
 }
 

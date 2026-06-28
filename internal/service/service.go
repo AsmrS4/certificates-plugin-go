@@ -28,6 +28,14 @@ func (s *ManagementService) FindRequests(filter dto.FindRequestsFilter) ([]dto.C
 	return results, total, nil
 }
 
+func (s *ManagementService) GetHistory(filter dto.FindRequestsFilter) ([]dto.CertificateRequestView, int64, error) {
+	results, total, err := s.managementRepo.HistoryRequests(&filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	return results, total, nil
+}
+
 func (s *ManagementService) FindWithUserDetails(ctx *wasmplugin.EventContext, id int64) (*dto.CertificateDetails, error) {
 	if id <= 0 {
 		return nil, apperrors.New(apperrors.KeyInvalidID, id)
