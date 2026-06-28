@@ -9,6 +9,7 @@ import (
 
 	"github.com/AsmrS4/certificates-plugin-go/internal/dto"
 	apperrors "github.com/AsmrS4/certificates-plugin-go/internal/errors"
+	"github.com/AsmrS4/certificates-plugin-go/internal/persistence/entity"
 	"github.com/AsmrS4/certificates-plugin-go/internal/service"
 	wasmplugin "github.com/SuperBotForge/sdk/go-sdk"
 )
@@ -51,12 +52,15 @@ func (h *HttpController) GetAll(ctx *wasmplugin.EventContext) {
 		h.handleError(ctx, err)
 		return
 	}
-
-	ctx.JSON(200, map[string]interface{}{
-		"data":   results,
+	pagination := map[string]interface{}{
 		"total":  total,
 		"limit":  filter.Limit,
 		"offset": filter.Offset,
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"data":       results,
+		"pagination": pagination,
 	})
 }
 
@@ -72,7 +76,7 @@ func (h *HttpController) GetDetails(ctx *wasmplugin.EventContext) {
 		return
 	}
 
-	details, err := h.m.FindWithUserDetails(id)
+	details, err := h.m.FindWithUserDetails(ctx, id)
 	if err != nil {
 		h.handleError(ctx, err)
 		return
@@ -112,9 +116,24 @@ func (h *HttpController) Reject(ctx *wasmplugin.EventContext) {
 		return
 	}
 
-	if err := h.m.RejectOrder(id, payload.Reason); err != nil {
+	studentID, err := h.m.RejectOrder(id, payload.Reason)
+	if err != nil {
 		h.handleError(ctx, err)
 		return
+	}
+
+	var event = &dto.OrderEvent{
+		UserID:      studentID,
+		OrderID:     id,
+		OrderStatus: string(entity.Rejected),
+		MessageKey:  dto.KeyRejected,
+		File:        nil,
+		Locale:      "ru",
+	}
+
+	err = wasmplugin.PublishEvent("certificates.change", event)
+	if err != nil {
+		ctx.LogError(fmt.Sprintf("failed send notification after rejection: %s", err.Error()))
 	}
 
 	ctx.JSON(200, map[string]string{"status": "rejected"})
@@ -132,9 +151,24 @@ func (h *HttpController) Process(ctx *wasmplugin.EventContext) {
 		return
 	}
 
-	if err := h.m.PrepareOrder(id); err != nil {
+	studentID, err := h.m.PrepareOrder(id)
+	if err != nil {
 		h.handleError(ctx, err)
 		return
+	}
+
+	var event = &dto.OrderEvent{
+		UserID:      studentID,
+		OrderID:     id,
+		OrderStatus: string(entity.Prepare),
+		MessageKey:  dto.KeyPrepare,
+		File:        nil,
+		Locale:      "ru",
+	}
+
+	err = wasmplugin.PublishEvent("certificates.change", event)
+	if err != nil {
+		ctx.LogError(fmt.Sprintf("failed send notification after prepare: %s", err.Error()))
 	}
 
 	ctx.JSON(200, map[string]string{"status": "processing"})
@@ -146,22 +180,25 @@ func (h *HttpController) Upload(ctx *wasmplugin.EventContext) {
 		ctx.JSON(400, map[string]string{"error": "missing id parameter"})
 		return
 	}
-	_, err := strconv.ParseInt(idParam, 10, 64)
+	orderID, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		ctx.JSON(400, map[string]string{"error": "invalid id format"})
 		return
 	}
 
 	var payload struct {
-		FileID   string `json:"file_id"`
-		FileName string `json:"file_name"`
+		ID       string
+		Name     string
+		MIMEType string
+		FileType string
 	}
+
 	if err := json.Unmarshal([]byte(ctx.HTTP.Body), &payload); err != nil {
 		ctx.JSON(400, map[string]string{"error": "invalid JSON body"})
 		return
 	}
 
-	if payload.FileID == "" || payload.FileName == "" {
+	if payload.ID == "" || payload.Name == "" {
 		ctx.JSON(400, map[string]string{"error": "file_id and file_name are required"})
 		return
 	}
@@ -169,9 +206,23 @@ func (h *HttpController) Upload(ctx *wasmplugin.EventContext) {
 	// здесь должна быть логика сохранения файла через s.managementRepo.UploadCertificate
 	// например:
 	// _, err = h.m.UploadCertificate(id, payload.FileID, payload.FileName)
+	studentID, err := h.m.UploadCertificateFile(orderID, payload)
 	if err != nil {
 		h.handleError(ctx, err)
 		return
+	}
+
+	var event = &dto.OrderEvent{
+		UserID:      studentID,
+		OrderID:     orderID,
+		OrderStatus: string(entity.Done),
+		MessageKey:  dto.KeyDone,
+		Locale:      "ru",
+	}
+
+	err = wasmplugin.PublishEvent("certificates.change", event)
+	if err != nil {
+		ctx.LogError(fmt.Sprintf("failed send notification after prepare: %s", err.Error()))
 	}
 
 	ctx.JSON(200, map[string]string{"status": "uploaded"})

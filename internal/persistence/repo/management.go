@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/AsmrS4/certificates-plugin-go/internal/dto"
 	repository "github.com/AsmrS4/certificates-plugin-go/internal/persistence"
+	wasmplugin "github.com/SuperBotForge/sdk/go-sdk"
 )
 
 var _ repository.ManagementRepo = (*ManagementImpl)(nil)
@@ -16,7 +18,7 @@ type ManagementImpl struct {
 	db *sql.DB
 }
 
-func (r *ManagementImpl) FindWithUserDetails(id int64) (*dto.CertificateDetails, error) {
+func (r *ManagementImpl) FindWithUserDetails(ctx *wasmplugin.EventContext, id int64) (*dto.CertificateDetails, error) {
 	query := `
 		SELECT 
 			ca.id, ca.student_id, ca.application_status, ca.certificate_type,
@@ -38,7 +40,7 @@ func (r *ManagementImpl) FindWithUserDetails(id int64) (*dto.CertificateDetails,
 	`
 
 	var details dto.CertificateDetails
-	var formDataJSON []byte
+	var formDataJSON sql.NullString
 
 	err := r.db.QueryRow(query, id).Scan(
 		&details.ID,
@@ -66,16 +68,27 @@ func (r *ManagementImpl) FindWithUserDetails(id int64) (*dto.CertificateDetails,
 		return nil, err
 	}
 
-	if len(formDataJSON) > 0 {
-		var formData map[string]interface{}
-		if err := json.Unmarshal(formDataJSON, &formData); err != nil {
-			details.FormData = make(map[string]interface{})
+	if formDataJSON.Valid && formDataJSON.String != "" {
+		str := formDataJSON.String
+		if strings.HasPrefix(str, "{") {
+			var formData map[string]interface{}
+			if err := json.Unmarshal([]byte(str), &formData); err != nil {
+				ctx.LogError(fmt.Sprintf("Failed to unmarshal form_data: %v", err))
+				details.FormData = make(map[string]interface{})
+			} else {
+				details.FormData = formData
+			}
+		} else if strings.HasPrefix(str, "map[") {
+			details.FormData = parseMapString(str)
 		} else {
-			details.FormData = formData
+			ctx.LogError(fmt.Sprintf("Unexpected format for form_data: %s", str))
+			details.FormData = make(map[string]interface{})
 		}
 	} else {
 		details.FormData = make(map[string]interface{})
 	}
+
+	ctx.Log(fmt.Sprintf("DEBUG: details.FormData after processing: %+v", details.FormData))
 
 	attachments, err := r.findAttachmentsByOrderID(id)
 	if err != nil {
@@ -90,6 +103,61 @@ func (r *ManagementImpl) FindWithUserDetails(id int64) (*dto.CertificateDetails,
 	details.CertificateFile = certFile
 
 	return &details, nil
+}
+
+func parseMapString(s string) map[string]interface{} {
+	s = strings.TrimPrefix(s, "map[")
+	s = strings.TrimSuffix(s, "]")
+	if s == "" {
+		return make(map[string]interface{})
+	}
+
+	result := make(map[string]interface{})
+
+	var key string
+	var value strings.Builder
+	inValue := false
+
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if !inValue {
+			if ch == ':' {
+				key = strings.TrimSpace(s[:i])
+				inValue = true
+				value.Reset()
+
+				j := i + 1
+				for j < len(s) && s[j] == ' ' {
+					j++
+				}
+
+				i = j - 1
+			}
+		} else {
+			if ch == ' ' && i+1 < len(s) {
+				next := i + 1
+
+				colonIdx := strings.Index(s[next:], ":")
+				if colonIdx != -1 {
+					potentialKey := s[next : next+colonIdx]
+					if !strings.Contains(potentialKey, " ") {
+						result[key] = strings.TrimSpace(value.String())
+						inValue = false
+
+						i = next - 1
+						continue
+					}
+				}
+			}
+			value.WriteByte(ch)
+		}
+	}
+
+	if inValue {
+		result[key] = strings.TrimSpace(value.String())
+	}
+
+	return result
 }
 
 func (r *ManagementImpl) findAttachmentsByOrderID(orderID int64) ([]dto.CertificateAttachmentView, error) {
@@ -213,6 +281,7 @@ func (r *ManagementImpl) FindRequests(filter *dto.FindRequestsFilter) ([]dto.Cer
 	if filter.Limit <= 0 {
 		filter.Limit = 10
 	}
+
 	if filter.Offset < 0 {
 		filter.Offset = 0
 	}

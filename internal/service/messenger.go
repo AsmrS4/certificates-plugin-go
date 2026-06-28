@@ -138,6 +138,7 @@ func (s *MessengerService) SaveOrder(ctx *wasmplugin.EventContext, req CreateOrd
 		Comment:      req.Comment,
 		FormData:     req.FormData,
 	}
+	ctx.Log(fmt.Sprintf("DEBUG: c.FormData in SaveORder: %+v", req.FormData))
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -149,7 +150,7 @@ func (s *MessengerService) SaveOrder(ctx *wasmplugin.EventContext, req CreateOrd
 		}
 	}()
 
-	orderID, err := s.repo.SaveTx(tx, order)
+	orderID, err := s.repo.SaveTx(ctx, tx, order)
 	if err != nil {
 		return 0, apperrors.Wrap(apperrors.KeyInternalError, err)
 	}

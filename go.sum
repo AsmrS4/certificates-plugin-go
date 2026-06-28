@@ -1,5 +1,5 @@
-github.com/SuperBotForge/sdk/go-sdk v0.4.11 h1:t52GoFyhT74iZzU0oijjHB2QF4F67tw5QXahL7uhLoA=
-github.com/SuperBotForge/sdk/go-sdk v0.4.11/go.mod h1:3jfIQeFMkGTBho7Qfxol31KsJiV1vSwwVeAm1cy+uqU=
+github.com/SuperBotForge/sdk/go-sdk v0.5.1-0.20260627071940-2cc866b49551 h1:+EKylB/4u1isKRo+w/R4K3AWrYHQSDRVzGCAM68dQI4=
+github.com/SuperBotForge/sdk/go-sdk v0.5.1-0.20260627071940-2cc866b49551/go.mod h1:3jfIQeFMkGTBho7Qfxol31KsJiV1vSwwVeAm1cy+uqU=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

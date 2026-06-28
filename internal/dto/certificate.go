@@ -50,12 +50,6 @@ type CertificateDetails struct {
 	CertificateFile *CertificateFileView        `json:"certificate_file,omitempty"`
 }
 
-type CertificateAttachmentResponse struct {
-	ID         int64  `json:"id"`
-	FileID     string `json:"file_id"`
-	UploadedAt string `json:"uploaded_at"`
-}
-
 type CertificateAttachmentView struct {
 	ID         int64  `json:"id"`
 	FileID     string `json:"file_id"`

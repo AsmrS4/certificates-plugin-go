@@ -5,10 +5,11 @@ import (
 
 	"github.com/AsmrS4/certificates-plugin-go/internal/dto"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence/entity"
+	wasmplugin "github.com/SuperBotForge/sdk/go-sdk"
 )
 
 type CertificateRepo interface {
-	SaveTx(tx *sql.Tx, c *entity.CertificateApplication) (int64, error)
+	SaveTx(ctx *wasmplugin.EventContext, tx *sql.Tx, c *entity.CertificateApplication) (int64, error)
 	SaveAttachmentsTx(tx *sql.Tx, orderID int64, attachments []entity.CertificateAttachment) error
 	FindByID(id int64) (*entity.CertificateApplication, error)
 	FindAttachmentsByOrderID(orderID int64) ([]entity.CertificateAttachment, error)
@@ -28,7 +29,7 @@ type ManagementRepo interface {
 	IsExists(id int64) (bool, error)
 	IsProcessing(id int64) (bool, error)
 	FindRequests(filter *dto.FindRequestsFilter) ([]dto.CertificateRequestView, int64, error)
-	FindWithUserDetails(id int64) (*dto.CertificateDetails, error)
+	FindWithUserDetails(ctx *wasmplugin.EventContext, id int64) (*dto.CertificateDetails, error)
 }
 
 type UserRepo interface {

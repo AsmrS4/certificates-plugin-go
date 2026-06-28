@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/AsmrS4/certificates-plugin-go/internal/dto"
 	apperrors "github.com/AsmrS4/certificates-plugin-go/internal/errors"
@@ -30,6 +31,7 @@ func (h *CertificateHandler) CreateOrder(ctx *wasmplugin.EventContext) error {
 
 	formData := make(map[string]interface{})
 	var comment string
+	ctx.Log(fmt.Sprintf("DEBUG: all params: %+v", ctx.Messenger.Params))
 	for key, value := range ctx.Messenger.Params {
 		if key == "type" || key == "obtain_method" {
 			continue
@@ -65,7 +67,7 @@ func (h *CertificateHandler) CreateOrder(ctx *wasmplugin.EventContext) error {
 	} else {
 		ctx.LogError(fmt.Sprintf("No file attachment"))
 	}
-
+	ctx.Log(fmt.Sprintf("DEBUG: c.FormData in Handler call CreateOrder: %+v", formData))
 	req := service.CreateOrderRequest{
 		StudentID:       studentID,
 		CertificateType: certType,
@@ -178,17 +180,23 @@ func (h *CertificateHandler) FindAllOrders(ctx *wasmplugin.EventContext) error {
 }
 
 func (h *CertificateHandler) formatOrderMessage(order *entity.CertificateApplication, tr func(key string, args ...any) string) string {
+	var parts []string
+
 	typeName := tr("certificate_type_" + string(order.Type))
 	methodName := tr("obtain_method_" + string(order.ObtainMethod))
 	statusName := tr("status_" + string(order.Status))
 
-	return fmt.Sprintf(
-		"%s: %d\n%s: %s\n%s: %s\n%s: %s",
-		tr("order_info_id"), order.ID,
-		tr("order_info_type"), typeName,
-		tr("order_info_obtain_method"), methodName,
-		tr("order_info_status"), statusName,
-	)
+	parts = append(parts, fmt.Sprintf("%s: %d", tr("order_info_id"), order.ID))
+	parts = append(parts, fmt.Sprintf("%s: %s", tr("order_info_type"), typeName))
+	parts = append(parts, fmt.Sprintf("%s: %s", tr("order_info_obtain_method"), methodName))
+	parts = append(parts, fmt.Sprintf("%s: %s", tr("order_info_status"), statusName))
+	if order.Status == "Rejected" && order.RejectionReason != "" {
+		parts = append(parts, fmt.Sprintf("\n%s: %s", tr("order_info_rejection_reason"), order.RejectionReason))
+	}
+	if order.Status == "Done" && order.ObtainMethod == "Paper" {
+		parts = append(parts, fmt.Sprintf("\n%s", tr("order_paper_done_comment")))
+	}
+	return strings.Join(parts, "\n")
 }
 
 func handleMessengerError(ctx *wasmplugin.EventContext, tr func(key string, args ...any) string, err error) {

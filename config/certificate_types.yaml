@@ -31,6 +31,19 @@ types:
           - field: comment
       requires_attachments: false
       max_attachments: 0
+    - id: recommendation_letter
+      display_name:
+          ru: 'Рекомендательное письмо'
+          en: 'Recommendation letter'
+      fields:
+          - name: detail
+            label: { ru: 'Опишите цель получения:', en: 'Purpose:' }
+            type: text
+            required: false
+      steps:
+          - field: detail
+      requires_attachments: false
+      max_attachments: 0
     # Шаг для загрузки файлов добавляется автоматически в триггере, поэтому его описывать не нужно
     - id: call
       display_name:

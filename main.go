@@ -3,9 +3,12 @@ package main
 import (
 	"database/sql"
 	"embed"
+	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/AsmrS4/certificates-plugin-go/internal/controller"
+	"github.com/AsmrS4/certificates-plugin-go/internal/dto"
 	"github.com/AsmrS4/certificates-plugin-go/internal/handler"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence/repo"
@@ -78,7 +81,7 @@ func main() {
 	wasmplugin.Run(wasmplugin.Plugin{
 		ID:      "certificates_plugin",
 		Name:    "Заказ справки из деканата",
-		Version: "1.0.3",
+		Version: "1.0.25",
 		Requirements: []wasmplugin.Requirement{
 			wasmplugin.Database("Store applications for a certificate plugin").Build(),
 			wasmplugin.File("Store and serve uploaded documents appendix to the certificate plugin").Build(),
@@ -97,6 +100,7 @@ func main() {
 			get_details_http(),
 			process_http(),
 			reject_http(),
+			notify(),
 		},
 	})
 }
@@ -132,17 +136,14 @@ func order_command() wasmplugin.Trigger {
 			if !inSteps {
 				continue
 			}
-
 			node := wasmplugin.NewStep(field.Name).
 				LocalizedText(field.Label, wasmplugin.StylePlain).
 				VisibleWhenFunc(func(ctx *wasmplugin.CallbackContext) bool {
 					return ctx.Params["type"] == id
 				})
-
 			if field.Required {
 				node = node.Validate(`.+`)
 			}
-
 			nodes = append(nodes, node)
 		}
 	}
@@ -328,7 +329,7 @@ func process_http() wasmplugin.Trigger {
 		Name:        "Start process certificate order",
 		Type:        wasmplugin.TriggerHTTP,
 		Description: "Start process certificate order",
-		Path:        "/api/certificates",
+		Path:        "/api/certificates/prepare",
 		Methods:     []string{"POST"},
 		Handler: func(ctx *wasmplugin.EventContext) error {
 			httpController.Process(ctx)
@@ -342,7 +343,7 @@ func reject_http() wasmplugin.Trigger {
 		Name:        "Reject certificate order",
 		Type:        wasmplugin.TriggerHTTP,
 		Description: "Rejection process certificate order",
-		Path:        "/api/certificates",
+		Path:        "/api/certificates/reject",
 		Methods:     []string{"DELETE"},
 		Handler: func(ctx *wasmplugin.EventContext) error {
 			httpController.Reject(ctx)
@@ -366,20 +367,30 @@ func upload_http() wasmplugin.Trigger {
 
 func notify() wasmplugin.Trigger {
 	return wasmplugin.Trigger{
-		Name:  "on_change_order_status",
+		Name:  "on_change_status",
 		Type:  wasmplugin.TriggerEvent,
-		Topic: "certificate_order.updated",
+		Topic: "certificates.change",
 		Handler: func(ctx *wasmplugin.EventContext) error {
-			// tr := cat.Tr(ctx.Locale())
-			// var payload models.OrderEvent
-			// raw := ctx.Event.Payload
-			// if err := json.Unmarshal(raw, &payload); err != nil {
-			// 	ctx.LogError(fmt.Sprintf("notification listener error: %s", err.Error()))
-			// 	return nil
-			// }
-			// message := fmt.Sprintf(tr("change_status_event"), payload.OrderID, payload.OrderStatus)
-			// return ctx.NotifyUser(payload.UserID, message, wasmplugin.PriorityNormal)
-			return nil
+			var payload dto.OrderEvent
+			if err := json.Unmarshal(ctx.Event.Payload, &payload); err != nil {
+				ctx.LogError(fmt.Sprintf("notification listener error: %s", err.Error()))
+				return nil
+			}
+
+			tr := cat.Tr(payload.Locale)
+			message := fmt.Sprintf(tr(payload.MessageKey), payload.OrderID)
+			msg := wasmplugin.NewMessage(message).Options("",
+				wasmplugin.Opt(tr("open"), "/find"))
+
+			if payload.File != nil {
+				msg = msg.File(*payload.File, tr("download"))
+			}
+
+			return ctx.NotifyRecipients().
+				User(payload.UserID).
+				Message(msg).
+				Priority(wasmplugin.PriorityNormal).
+				Send()
 		},
 	}
 }

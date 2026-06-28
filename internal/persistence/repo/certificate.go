@@ -7,6 +7,7 @@ import (
 
 	repository "github.com/AsmrS4/certificates-plugin-go/internal/persistence"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence/entity"
+	wasmplugin "github.com/SuperBotForge/sdk/go-sdk"
 )
 
 var _ repository.CertificateRepo = (*CertificateImpl)(nil)
@@ -19,7 +20,8 @@ func NewRepo(db *sql.DB) *CertificateImpl {
 	return &CertificateImpl{db: db}
 }
 
-func (r *CertificateImpl) SaveTx(tx *sql.Tx, c *entity.CertificateApplication) (int64, error) {
+func (r *CertificateImpl) SaveTx(ctx *wasmplugin.EventContext, tx *sql.Tx, c *entity.CertificateApplication) (int64, error) {
+	ctx.Log(fmt.Sprintf("DEBUG: c.FormData in SaveTx before marshal: %+v", c.FormData))
 	if c.FormData == nil {
 		c.FormData = make(map[string]interface{})
 	}
@@ -27,6 +29,7 @@ func (r *CertificateImpl) SaveTx(tx *sql.Tx, c *entity.CertificateApplication) (
 	if err != nil {
 		return 0, fmt.Errorf("marshal form_data: %w", err)
 	}
+	ctx.Log(fmt.Sprintf("DEBUG: formDataJSON: %s", string(formDataJSON)))
 
 	var id int64
 	err = tx.QueryRow(
