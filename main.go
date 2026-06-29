@@ -81,7 +81,7 @@ func main() {
 	wasmplugin.Run(wasmplugin.Plugin{
 		ID:      "certificates_plugin",
 		Name:    "Заказ справки из деканата",
-		Version: "1.0.49",
+		Version: "1.1.14",
 		Requirements: []wasmplugin.Requirement{
 			wasmplugin.Database("Store applications for a certificate plugin").Build(),
 			wasmplugin.File("Store and serve uploaded documents appendix to the certificate plugin").Build(),
@@ -102,6 +102,7 @@ func main() {
 			get_details_http(),
 			process_http(),
 			reject_http(),
+			upload_http(),
 			notify(),
 		},
 	})
@@ -390,6 +391,7 @@ func upload_http() wasmplugin.Trigger {
 		Path:        "/api/certificates/upload",
 		Methods:     []string{"POST"},
 		Handler: func(ctx *wasmplugin.EventContext) error {
+			httpController.Upload(ctx)
 			return nil
 		},
 	}

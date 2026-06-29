@@ -90,7 +90,7 @@ order_info_type = "Certificate type"
 order_info_obtain_method = "Obtain method"
 order_info_status = "Status" 
 order_info_rejection_reason = "Rejection reason"
-download = "Download"
+download = "Download ⬇️"
 order_paper_done_comment = "The certificate can be picked up at the dean's office."
 
 changed_to_prepare = "🔔 The status of the certificate order with ID: %d has been changed to 'Prepare'"

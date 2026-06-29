@@ -117,14 +117,12 @@ func (h *CertificateHandler) CancelOrder(ctx *wasmplugin.EventContext) error {
 
 func (h *CertificateHandler) FindOrderByID(ctx *wasmplugin.EventContext) error {
 	tr := h.cat.Tr(ctx.Locale())
-
 	idParam := ctx.Param("enter_id")
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		ctx.Reply(wasmplugin.NewMessage(tr("incorrect_id")))
 		return nil
 	}
-
 	req := service.FindOrderRequest{OrderID: id}
 	details, err := h.service.GetOrderDetails(ctx, req)
 	if err != nil {
@@ -135,16 +133,16 @@ func (h *CertificateHandler) FindOrderByID(ctx *wasmplugin.EventContext) error {
 		ctx.Reply(wasmplugin.NewMessage(fmt.Sprintf(tr("order_not_found"), id)))
 		return nil
 	}
-
 	msgText := h.formatOrderMessage(details.Application, tr)
 	msg := wasmplugin.NewMessage(msgText)
-
-	if len(details.FileIDs) == 0 {
-		ctx.Log(fmt.Sprintf("user %d viewed order %d (no files)", ctx.Messenger.UserID, id))
+	ctx.LogError(fmt.Sprintf("DEBUG: file document %+v", details.CertificateFile))
+	if details.CertificateFile != nil && details.CertificateFile.FileID != "" {
+		if details.CertificateFile.StorageURL != "" {
+			msg = msg.Link(details.CertificateFile.StorageURL, fmt.Sprintf("\n%s", tr("download")))
+		}
 	}
-
 	ctx.Reply(msg)
-	ctx.Log(fmt.Sprintf("user %d viewed order %d with %d file(s)", ctx.Messenger.UserID, id))
+	ctx.Log(fmt.Sprintf("user %d viewed order %d", ctx.Messenger.UserID, id))
 	return nil
 }
 

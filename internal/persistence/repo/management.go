@@ -84,12 +84,14 @@ func (r *ManagementImpl) HistoryRequests(filter *dto.FindRequestsFilter) ([]dto.
 		filter.Limit = 10
 	}
 
-	if filter.Offset < 0 {
-		filter.Offset = 0
+	page := filter.Offset
+	if page < 0 {
+		page = 0
 	}
+	offset := page * filter.Limit
 
 	query += fmt.Sprintf(" ORDER BY ca.created_at DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
-	args = append(args, filter.Limit, filter.Offset)
+	args = append(args, filter.Limit, offset)
 
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
@@ -307,13 +309,14 @@ func (r *ManagementImpl) findAttachmentsByOrderID(orderID int64) ([]dto.Certific
 func (r *ManagementImpl) findCertificateFileByOrderID(orderID int64) (*dto.CertificateFileView, error) {
 	var certFile dto.CertificateFileView
 	err := r.db.QueryRow(`
-		SELECT id, file_id, file_name, storage_url, uploaded_at
+		SELECT id, file_id, COALESCE(file_name, ''), COALESCE(file_type,''), COALESCE(storage_url,''), uploaded_at
 		FROM certificate_documents
 		WHERE order_id = $1
 	`, orderID).Scan(
 		&certFile.ID,
 		&certFile.FileID,
 		&certFile.FileName,
+		&certFile.FileType,
 		&certFile.StorageURL,
 		&certFile.UploadedAt,
 	)
@@ -395,12 +398,13 @@ func (r *ManagementImpl) FindRequests(filter *dto.FindRequestsFilter) ([]dto.Cer
 		filter.Limit = 10
 	}
 
-	if filter.Offset < 0 {
-		filter.Offset = 0
+	page := filter.Offset
+	if page < 0 {
+		page = 0
 	}
-
+	offset := page * filter.Limit
 	query += fmt.Sprintf(" ORDER BY ca.created_at DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
-	args = append(args, filter.Limit, filter.Offset)
+	args = append(args, filter.Limit, offset)
 
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
@@ -439,6 +443,45 @@ func (r *ManagementImpl) FindRequests(filter *dto.FindRequestsFilter) ([]dto.Cer
 	}
 
 	return results, total, nil
+}
+
+func (r *ManagementImpl) UploadDocument(orderID int64, f *dto.File, url string) (int64, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var docID int64
+	err = tx.QueryRow(`
+        INSERT INTO certificate_documents (order_id, file_id, file_name, mime_type, file_type, storage_url, uploaded_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        RETURNING id
+    `, orderID, f.ID, f.Name, f.MIMEType, f.FileType, url).Scan(&docID)
+	if err != nil {
+		return 0, err
+	}
+
+	var studentID int64
+	err = tx.QueryRow(`
+    	UPDATE certificate_applications
+    	SET application_status = 'Done'
+    	WHERE id = $1
+    	RETURNING student_id
+	`, orderID).Scan(&studentID)
+	if err != nil {
+		return 0, err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, err
+	}
+
+	return studentID, nil
 }
 
 func (r *ManagementImpl) Prepare(id int64) (int64, int64, error) {

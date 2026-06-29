@@ -139,6 +139,17 @@ func (h *HttpController) GetDetails(ctx *wasmplugin.EventContext) {
 		}
 		details.Attachments[idx].File_URL = url
 	}
+
+	var url string
+	if details.CertificateFile != nil {
+		url, err = ctx.FileURL(details.CertificateFile.FileID)
+		if err != nil {
+			ctx.LogError(fmt.Sprintf("DEBUG: Received loading URL: %s", err.Error()))
+			details.CertificateFile = nil
+			ctx.JSON(200, details)
+		}
+		details.CertificateFile.StorageURL = url
+	}
 	ctx.JSON(200, details)
 }
 
@@ -284,12 +295,7 @@ func (h *HttpController) Upload(ctx *wasmplugin.EventContext) {
 		return
 	}
 
-	var payload struct {
-		ID       string
-		Name     string
-		MIMEType string
-		FileType string
-	}
+	var payload dto.File
 
 	if err := json.Unmarshal([]byte(ctx.HTTP.Body), &payload); err != nil {
 		ctx.JSON(400, map[string]string{"error": "invalid JSON body"})
@@ -301,10 +307,12 @@ func (h *HttpController) Upload(ctx *wasmplugin.EventContext) {
 		return
 	}
 
-	// здесь должна быть логика сохранения файла через s.managementRepo.UploadCertificate
-	// например:
-	// _, err = h.m.UploadCertificate(id, payload.FileID, payload.FileName)
-	studentID, err := h.m.UploadCertificateFile(orderID, payload)
+	fileUrl, err := ctx.FileURL(payload.ID)
+	if err != nil {
+		ctx.LogError(fmt.Sprintf("DEBUG CONTROLLER: failed to get file URL for order %d: %v", orderID, err))
+	}
+
+	studentID, err := h.m.UploadCertificateFile(orderID, payload, fileUrl)
 	if err != nil {
 		h.handleError(ctx, err)
 		return
@@ -320,7 +328,7 @@ func (h *HttpController) Upload(ctx *wasmplugin.EventContext) {
 
 	err = wasmplugin.PublishEvent("certificates.change", event)
 	if err != nil {
-		ctx.LogError(fmt.Sprintf("failed send notification after prepare: %s", err.Error()))
+		ctx.LogError(fmt.Sprintf("failed send notification after upload: %s", err.Error()))
 	}
 
 	ctx.JSON(200, map[string]string{"status": "uploaded"})

@@ -215,6 +215,7 @@ func (s *MessengerService) GetOrderDetails(ctx *wasmplugin.EventContext, req Fin
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, apperrors.New(apperrors.KeyOrderNotFound, req.OrderID)
 		}
+		ctx.LogError(fmt.Sprintf("DEBUG: Received SQL ERROR: %s", err.Error()))
 		return nil, apperrors.Wrap(apperrors.KeyInternalError, err)
 	}
 	if order == nil {
@@ -225,15 +226,20 @@ func (s *MessengerService) GetOrderDetails(ctx *wasmplugin.EventContext, req Fin
 	if err != nil {
 		return nil, apperrors.Wrap(apperrors.KeyInternalError, err)
 	}
-	ctx.Log(fmt.Sprintf("Attachments: %+v", attachments))
 	fileIDs := make([]string, len(attachments))
 	for i, att := range attachments {
 		fileIDs[i] = att.FileID
 	}
 
+	certificateFile, err := s.repo.FindCertificateDocumentByOrderID(req.OrderID)
+	if err != nil {
+		return nil, apperrors.Wrap(apperrors.KeyInternalError, err)
+	}
+
 	return &dto.OrderDetails{
-		Application: order,
-		FileIDs:     fileIDs,
+		Application:     order,
+		FileIDs:         fileIDs,
+		CertificateFile: certificateFile,
 	}, nil
 }
 

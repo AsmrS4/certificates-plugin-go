@@ -12,6 +12,7 @@ type CertificateRepo interface {
 	SaveTx(ctx *wasmplugin.EventContext, tx *sql.Tx, c *entity.CertificateApplication) (int64, error)
 	SaveAttachmentsTx(tx *sql.Tx, orderID int64, attachments []entity.CertificateAttachment) error
 	FindByID(id int64) (*entity.CertificateApplication, error)
+	FindCertificateDocumentByOrderID(orderID int64) (*entity.CertificateDocuments, error)
 	FindAttachmentsByOrderID(orderID int64) ([]entity.CertificateAttachment, error)
 	FindAllWithStatus(userID int64, st entity.CertificateStatus, tp string) ([]entity.CertificateApplication, error)
 	FindAllByStudent(studentID int64) ([]entity.CertificateApplication, error)
@@ -31,6 +32,7 @@ type ManagementRepo interface {
 	FindRequests(filter *dto.FindRequestsFilter) ([]dto.CertificateRequestView, int64, error)
 	HistoryRequests(filter *dto.FindRequestsFilter) ([]dto.CertificateRequestView, int64, error)
 	FindWithUserDetails(ctx *wasmplugin.EventContext, id int64) (*dto.CertificateDetails, error)
+	UploadDocument(orderID int64, f *dto.File, url string) (int64, error)
 }
 
 type UserRepo interface {

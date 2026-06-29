@@ -2,6 +2,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/AsmrS4/certificates-plugin-go/internal/dto"
 	apperrors "github.com/AsmrS4/certificates-plugin-go/internal/errors"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence"
@@ -43,6 +45,7 @@ func (s *ManagementService) FindWithUserDetails(ctx *wasmplugin.EventContext, id
 
 	details, err := s.managementRepo.FindWithUserDetails(ctx, id)
 	if err != nil {
+		ctx.LogError(fmt.Sprintf("DEBUG: Received SQL ERROR: %s", err.Error()))
 		return nil, apperrors.Wrap(apperrors.KeyInternalError, err)
 	}
 	if details == nil {
@@ -100,7 +103,7 @@ func (s *ManagementService) PrepareOrder(id int64) (int64, error) {
 	return studentID, nil
 }
 
-func (s *ManagementService) UploadCertificateFile(orderID int64, file dto.File) (int64, error) {
+func (s *ManagementService) UploadCertificateFile(orderID int64, file dto.File, fileUrl string) (int64, error) {
 	exists, err := s.managementRepo.IsExists(orderID)
 	if err != nil {
 		return 0, err
@@ -115,7 +118,10 @@ func (s *ManagementService) UploadCertificateFile(orderID int64, file dto.File) 
 	if !processing {
 		return 0, apperrors.New(apperrors.KeyOrderNotInProcessing, orderID)
 	}
-	//метод для сохранения файла
-	//
-	return 1, nil
+
+	id, err := s.managementRepo.UploadDocument(orderID, &file, fileUrl)
+	if err != nil {
+		return 0, apperrors.New(apperrors.KeyInternalError, orderID)
+	}
+	return id, nil
 }

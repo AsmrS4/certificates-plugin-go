@@ -65,7 +65,8 @@ type CertificateFileView struct {
 	ID         int64  `json:"id"`
 	FileID     string `json:"file_id"`
 	FileName   string `json:"file_name"`
-	StorageURL string `json:"storage_url"`
+	FileType   string `json:"file_type,omitempty"`
+	StorageURL string `json:"storage_url,omitempty"`
 	UploadedAt string `json:"uploaded_at"`
 }
 
@@ -83,13 +84,14 @@ type UserDetails struct {
 }
 
 type OrderDetails struct {
-	Application *entity.CertificateApplication
-	FileIDs     []string
+	Application     *entity.CertificateApplication
+	FileIDs         []string
+	CertificateFile *entity.CertificateDocuments
 }
 
 type File struct {
-	ID       string
-	Name     string
-	MIMEType string
-	FileType string
+	ID       string `json:"file_id"`
+	Name     string `json:"file_name"`
+	MIMEType string `json:"file_type"`
+	FileType string `json:"mime_type"`
 }
