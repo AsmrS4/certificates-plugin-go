@@ -3,6 +3,7 @@ package repo
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	repository "github.com/AsmrS4/certificates-plugin-go/internal/persistence"
@@ -157,6 +158,30 @@ func (r *CertificateImpl) FindByID(id int64) (*entity.CertificateApplication, er
 	}
 
 	return &found, nil
+}
+
+func (r *CertificateImpl) FindCertificateDocumentByOrderID(orderID int64) (*entity.CertificateDocuments, error) {
+	var doc entity.CertificateDocuments
+	err := r.db.QueryRow(`
+        SELECT id, order_id, file_id, COALESCE(file_name, ''), COALESCE(file_type,''), COALESCE(storage_url,''), uploaded_at
+        FROM certificate_documents
+        WHERE order_id = $1
+    `, orderID).Scan(
+		&doc.ID,
+		&doc.OrderID,
+		&doc.FileID,
+		&doc.FileName,
+		&doc.FileType,
+		&doc.StorageURL,
+		&doc.UploadedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &doc, nil
 }
 
 func (r *CertificateImpl) FindAttachmentsByOrderID(orderID int64) ([]entity.CertificateAttachment, error) {

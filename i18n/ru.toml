@@ -90,7 +90,7 @@ order_info_type = "Тип справки"
 order_info_obtain_method = "Способ получения"
 order_info_status = "Статус" 
 order_info_rejection_reason = "Причина"
-download = "Скачать справку"
+download = "Скачать справку ⬇️"
 order_paper_done_comment = "Справку можно забрать в деканате."
 
 changed_to_prepare = "🔔 Заказ справки #%d на рассмотрении🔜"

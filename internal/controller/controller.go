@@ -40,6 +40,57 @@ func (h *HttpController) GetAll(ctx *wasmplugin.EventContext) {
 		filter.Limit = limit
 	}
 
+	if strings.TrimSpace(filter.Status) != "" && filter.Status != "Pending" && filter.Status != "Prepare" {
+		ctx.JSON(400, map[string]string{"error": "Only Pending and Prepare statuses are allowed"})
+		return
+	}
+
+	offset, err := strconv.Atoi(ctx.HTTP.Query["offset"])
+	if err != nil || offset < 0 {
+		filter.Offset = 0
+	} else {
+		filter.Offset = offset
+	}
+
+	results, total, err := h.m.FindRequests(filter)
+	if err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+	pagination := map[string]interface{}{
+		"total":  total,
+		"limit":  filter.Limit,
+		"offset": filter.Offset,
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"data":       results,
+		"pagination": pagination,
+	})
+}
+
+func (h *HttpController) GetAllForeign(ctx *wasmplugin.EventContext) {
+	filter := dto.FindRequestsFilter{
+		FullName:        ctx.HTTP.Query["full_name"],
+		NationalityType: "foreign",
+		FacultyName:     ctx.HTTP.Query["faculty_name"],
+		GroupCode:       ctx.HTTP.Query["group_code"],
+		Type:            ctx.HTTP.Query["type"],
+		Status:          ctx.HTTP.Query["status"],
+	}
+
+	limit, err := strconv.Atoi(ctx.HTTP.Query["limit"])
+	if err != nil || limit <= 0 {
+		filter.Limit = 10
+	} else {
+		filter.Limit = limit
+	}
+
+	if strings.TrimSpace(filter.Status) != "" && filter.Status != "Pending" && filter.Status != "Prepare" {
+		ctx.JSON(400, map[string]string{"error": "Only Pending and Prepare statuses are allowed"})
+		return
+	}
+
 	offset, err := strconv.Atoi(ctx.HTTP.Query["offset"])
 	if err != nil || offset < 0 {
 		filter.Offset = 0
@@ -88,7 +139,64 @@ func (h *HttpController) GetDetails(ctx *wasmplugin.EventContext) {
 		}
 		details.Attachments[idx].File_URL = url
 	}
+
+	var url string
+	if details.CertificateFile != nil {
+		url, err = ctx.FileURL(details.CertificateFile.FileID)
+		if err != nil {
+			ctx.LogError(fmt.Sprintf("DEBUG: Received loading URL: %s", err.Error()))
+			details.CertificateFile = nil
+			ctx.JSON(200, details)
+		}
+		details.CertificateFile.StorageURL = url
+	}
 	ctx.JSON(200, details)
+}
+
+func (h *HttpController) GetHistory(ctx *wasmplugin.EventContext) {
+	filter := dto.FindRequestsFilter{
+		FullName:        ctx.HTTP.Query["full_name"],
+		NationalityType: ctx.HTTP.Query["nationality_type"],
+		FacultyName:     ctx.HTTP.Query["faculty_name"],
+		GroupCode:       ctx.HTTP.Query["group_code"],
+		Type:            ctx.HTTP.Query["type"],
+		Status:          ctx.HTTP.Query["status"],
+	}
+
+	limit, err := strconv.Atoi(ctx.HTTP.Query["limit"])
+	if err != nil || limit <= 0 {
+		filter.Limit = 10
+	} else {
+		filter.Limit = limit
+	}
+
+	if strings.TrimSpace(filter.Status) != "" && filter.Status != "Rejected" && filter.Status != "Done" {
+		ctx.JSON(400, map[string]string{"error": "Only Rejected and Done statuses are allowed"})
+		return
+	}
+
+	offset, err := strconv.Atoi(ctx.HTTP.Query["offset"])
+	if err != nil || offset < 0 {
+		filter.Offset = 0
+	} else {
+		filter.Offset = offset
+	}
+
+	results, total, err := h.m.GetHistory(filter)
+	if err != nil {
+		h.handleError(ctx, err)
+		return
+	}
+	pagination := map[string]interface{}{
+		"total":  total,
+		"limit":  filter.Limit,
+		"offset": filter.Offset,
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"data":       results,
+		"pagination": pagination,
+	})
 }
 
 func (h *HttpController) Reject(ctx *wasmplugin.EventContext) {
@@ -111,12 +219,13 @@ func (h *HttpController) Reject(ctx *wasmplugin.EventContext) {
 		return
 	}
 
-	if strings.TrimSpace(payload.Reason) == "" {
+	reason := strings.TrimSpace(payload.Reason)
+	if reason == "" {
 		ctx.JSON(400, map[string]string{"error": "rejection reason is required"})
 		return
 	}
 
-	studentID, err := h.m.RejectOrder(id, payload.Reason)
+	studentID, err := h.m.RejectOrder(id, reason)
 	if err != nil {
 		h.handleError(ctx, err)
 		return
@@ -186,12 +295,7 @@ func (h *HttpController) Upload(ctx *wasmplugin.EventContext) {
 		return
 	}
 
-	var payload struct {
-		ID       string
-		Name     string
-		MIMEType string
-		FileType string
-	}
+	var payload dto.File
 
 	if err := json.Unmarshal([]byte(ctx.HTTP.Body), &payload); err != nil {
 		ctx.JSON(400, map[string]string{"error": "invalid JSON body"})
@@ -203,10 +307,12 @@ func (h *HttpController) Upload(ctx *wasmplugin.EventContext) {
 		return
 	}
 
-	// здесь должна быть логика сохранения файла через s.managementRepo.UploadCertificate
-	// например:
-	// _, err = h.m.UploadCertificate(id, payload.FileID, payload.FileName)
-	studentID, err := h.m.UploadCertificateFile(orderID, payload)
+	fileUrl, err := ctx.FileURL(payload.ID)
+	if err != nil {
+		ctx.LogError(fmt.Sprintf("DEBUG CONTROLLER: failed to get file URL for order %d: %v", orderID, err))
+	}
+
+	studentID, err := h.m.UploadCertificateFile(orderID, payload, fileUrl)
 	if err != nil {
 		h.handleError(ctx, err)
 		return
@@ -222,7 +328,7 @@ func (h *HttpController) Upload(ctx *wasmplugin.EventContext) {
 
 	err = wasmplugin.PublishEvent("certificates.change", event)
 	if err != nil {
-		ctx.LogError(fmt.Sprintf("failed send notification after prepare: %s", err.Error()))
+		ctx.LogError(fmt.Sprintf("failed send notification after upload: %s", err.Error()))
 	}
 
 	ctx.JSON(200, map[string]string{"status": "uploaded"})

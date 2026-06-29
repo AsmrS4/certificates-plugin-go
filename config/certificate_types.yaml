@@ -8,13 +8,8 @@ types:
             label: { ru: 'Опишите цель получения:', en: 'Purpose:' }
             type: text
             required: true
-          - name: destination_university
-            label: { ru: 'Укажите вуз для перевода:', en: 'Destination university:' }
-            type: text
-            required: true
       steps:
           - field: purpose
-          - field: destination_university
       requires_attachments: false
       max_attachments: 0
 

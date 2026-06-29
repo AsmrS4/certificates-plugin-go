@@ -21,3 +21,14 @@ type CertificateAttachment struct {
 	FileType   string `json:"file_type"`
 	UploadedAt string `json:"uploaded_at"`
 }
+
+type CertificateDocuments struct {
+	ID         int64  `json:"id"`
+	OrderID    int64  `json:"order_id"`
+	FileID     string `json:"file_id"`
+	FileName   string `json:"file_name,omitempty"`
+	MIMEType   string `json:"file_name,omitempty"`
+	FileType   string `json:"file_name,omitempty"`
+	StorageURL string `json:"storage_url"`
+	UploadedAt string `json:"uploaded_at"`
+}
