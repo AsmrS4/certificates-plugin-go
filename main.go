@@ -81,7 +81,7 @@ func main() {
 	wasmplugin.Run(wasmplugin.Plugin{
 		ID:      "certificates_plugin",
 		Name:    "Заказ справки из деканата",
-		Version: "1.1.14",
+		Version: "1.1.21",
 		Requirements: []wasmplugin.Requirement{
 			wasmplugin.Database("Store applications for a certificate plugin").Build(),
 			wasmplugin.File("Store and serve uploaded documents appendix to the certificate plugin").Build(),
@@ -191,7 +191,7 @@ func order_command() wasmplugin.Trigger {
 					}
 				}
 			}
-			certHandler.CreateOrder(ctx)
+			certHandler.CreateOrder(ctx, registry)
 			return nil
 		},
 	}

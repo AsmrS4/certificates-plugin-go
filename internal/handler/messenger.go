@@ -10,6 +10,7 @@ import (
 	apperrors "github.com/AsmrS4/certificates-plugin-go/internal/errors"
 	"github.com/AsmrS4/certificates-plugin-go/internal/persistence/entity"
 	"github.com/AsmrS4/certificates-plugin-go/internal/service"
+	"github.com/AsmrS4/certificates-plugin-go/internal/utils"
 	wasmplugin "github.com/SuperBotForge/sdk/go-sdk"
 )
 
@@ -22,7 +23,7 @@ func NewCertificateHandler(service *service.MessengerService, cat *wasmplugin.Ca
 	return &CertificateHandler{service: service, cat: cat}
 }
 
-func (h *CertificateHandler) CreateOrder(ctx *wasmplugin.EventContext) error {
+func (h *CertificateHandler) CreateOrder(ctx *wasmplugin.EventContext, registry map[string]utils.CertificateTypeConfig) error {
 	tr := h.cat.Tr(ctx.Locale())
 
 	certType := ctx.Param("type")
@@ -31,17 +32,20 @@ func (h *CertificateHandler) CreateOrder(ctx *wasmplugin.EventContext) error {
 
 	formData := make(map[string]interface{})
 	var comment string
-	ctx.Log(fmt.Sprintf("DEBUG: all params: %+v", ctx.Messenger.Params))
-	for key, value := range ctx.Messenger.Params {
-		if key == "type" || key == "obtain_method" {
-			continue
+	cfg, ok := registry[certType]
+	if ok {
+		ctx.Log(fmt.Sprintf("Fields for type %s: %+v", certType, cfg.Fields))
+		for _, field := range cfg.Fields {
+			if val, exists := ctx.Messenger.Params[field.Name]; exists && val != "" {
+				if field.Name == "comment" {
+					comment = val
+				} else {
+					formData[field.Name] = val
+				}
+			}
 		}
-		if key == "comment" {
-			comment = value
-			continue
-		}
-		formData[key] = value
 	}
+	ctx.Log(fmt.Sprintf("DEBUG: formData after filtering: %+v", formData))
 
 	var files []*dto.File
 	if ctx.HasFiles() {
@@ -56,7 +60,7 @@ func (h *CertificateHandler) CreateOrder(ctx *wasmplugin.EventContext) error {
 				ctx.LogError(fmt.Sprintf("failed to store file %s: %v", f.Name, err))
 				continue
 			}
-			var file = &dto.File{
+			file := &dto.File{
 				ID:       stored.ID,
 				Name:     stored.Name,
 				MIMEType: stored.MIMEType,
@@ -64,10 +68,8 @@ func (h *CertificateHandler) CreateOrder(ctx *wasmplugin.EventContext) error {
 			}
 			files = append(files, file)
 		}
-	} else {
-		ctx.LogError(fmt.Sprintf("No file attachment"))
 	}
-	ctx.Log(fmt.Sprintf("DEBUG: c.FormData in Handler call CreateOrder: %+v", formData))
+
 	req := service.CreateOrderRequest{
 		StudentID:       studentID,
 		CertificateType: certType,
